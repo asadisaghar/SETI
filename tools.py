@@ -120,7 +120,60 @@ def col_inf(galaxy, dist, count, ind):
     count += 1
     return galaxy[4,:], galaxy[5,:], N_colonized, count
 
+def calculate_reachable(galaxy, dist, count):
+    # spot the colonizer!
+    ind = np.where(galaxy[5,:]==1)[0]
+#        print 'Mission started at # %d: '%(ind[0])
+    r_col = galaxy[0,ind]
+    phi_col = galaxy[1,ind]
+    z_col = galaxy[2,ind]
+    x_col = r_col*cos(phi_col)
+    y_col = r_col*sin(phi_col)
+    # mark the reachable sphere
+    # dr = dist
+    # dz = dist
+    if dist<=r_col:
+        dphi = np.arcsin(dist/r_col)
+        reachable = np.where((abs(galaxy[0,:]-r_col)<=dist) &
+                             (abs(galaxy[1,:]-phi_col<=dphi)) &
+                             (abs(galaxy[2,:]-z_col)<=dist) &
+                             (galaxy[5,:]==0))
+    else:
+#            sys.exit('OUCH! Send slower probes or check on them at shorter time steps!')
+        reachable = np.where((galaxy[0,:]<=dist) &
+                             (abs(galaxy[2,:]-z_col)<=dist) &
+                             (galaxy[5,:]==0))
+    return reachable
 
+def update_galaxy(galaxy, dist, count, reachable):
+    N_reachable = np.size(reachable[0])
+    if N_reachable == 0:
+#            print 'Mission failed!'
+        count += 1
+    else:
+#            print 'N_reachable = %d'%(N_reachable)
+        N_gal = np.size(galaxy[0,:])
+        galaxy_cart2 = np.zeros((2, N_gal))
+        galaxy_cart2[0,reachable] = galaxy[0,reachable]*np.cos(galaxy[1,reachable])
+        galaxy_cart2[1,reachable] = galaxy[0,reachable]*np.sin(galaxy[1,reachable])
+        d2 = np.zeros((1, N_gal))
+        d2[0,reachable] = np.power(galaxy_cart2[0,reachable]-x_col,2)
+        d2[0,reachable] += np.power(galaxy_cart2[1,reachable]-y_col,2)
+        d2[0,reachable] += np.power(galaxy[2,reachable]-z_col,2)
+        d2min = np.min(d2[np.nonzero(d2)])
+        dmin = np.sqrt(d2min)
+        ind_dmin = np.where(d2==d2min)[1]
+#            print'Mission accomplished at # %d: '%(ind_dmin[0])
+#            print '(d_min, r_reachable) = (%f, %f)'%(dmin, dist)
+        galaxy[5,ind] = -1.
+        galaxy[5,ind_dmin] = 1.
+        galaxy[4, ind_dmin] = 0
+        col_dist += dmin
+        colonized += 1
+        count = 1
+#            print '%d sites added to the territory!'%(colonized)
+
+  
 # Particle-toparticle colonization, single probe
 # As each step, the *closest* site within the sphere of r=dist is colonized,
 # ONLY by the sites which are colonized during the FIRST previous step
@@ -130,54 +183,7 @@ def col_single(galaxy, dist, count):
     colonized = 0
 #    print 'distance = %e pc'%(dist)
     while col_dist < dist:
-        # spot the colonizer!
-        ind = np.where(galaxy[5,:]==1)[0]
-#        print 'Mission started at # %d: '%(ind[0])
-        r_col = galaxy[0,ind]
-        phi_col = galaxy[1,ind]
-        z_col = galaxy[2,ind]
-        x_col = r_col*cos(phi_col)
-        y_col = r_col*sin(phi_col)
-        # mark the reachable sphere
-        # dr = dist
-        # dz = dist
-        if dist<=r_col:
-            dphi = np.arcsin(dist/r_col)
-            reachable = np.where((abs(galaxy[0,:]-r_col)<=dist) &
-                                 (abs(galaxy[1,:]-phi_col<=dphi)) &
-                                 (abs(galaxy[2,:]-z_col)<=dist) &
-                                 (galaxy[5,:]==0))
-        else:
-#            sys.exit('OUCH! Send slower probes or check on them at shorter time steps!')
-            reachable = np.where((galaxy[0,:]<=dist) &
-                                 (abs(galaxy[2,:]-z_col)<=dist) &
-                                 (galaxy[5,:]==0))
-
-        N_reachable = np.size(reachable[0])
-        if N_reachable == 0:
-#            print 'Mission failed!'
-            count += 1
-        else:
-#            print 'N_reachable = %d'%(N_reachable)
-            N_gal = np.size(galaxy[0,:])
-            galaxy_cart2 = np.zeros((2, N_gal))
-            galaxy_cart2[0,reachable] = galaxy[0,reachable]*np.cos(galaxy[1,reachable])
-            galaxy_cart2[1,reachable] = galaxy[0,reachable]*np.sin(galaxy[1,reachable])
-            d2 = np.zeros((1, N_gal))
-            d2[0,reachable] = np.power(galaxy_cart2[0,reachable]-x_col,2)
-            d2[0,reachable] += np.power(galaxy_cart2[1,reachable]-y_col,2)
-            d2[0,reachable] += np.power(galaxy[2,reachable]-z_col,2)
-            d2min = np.min(d2[np.nonzero(d2)])
-            dmin = np.sqrt(d2min)
-            ind_dmin = np.where(d2==d2min)[1]
-#            print'Mission accomplished at # %d: '%(ind_dmin[0])
-#            print '(d_min, r_reachable) = (%f, %f)'%(dmin, dist)
-            galaxy[5,ind] = -1.
-            galaxy[5,ind_dmin] = 1.
-            galaxy[4, ind_dmin] = 0
-            col_dist += dmin
-            colonized += 1
-            count = 1
-#            print '%d sites added to the territory!'%(colonized)
+        reachable = calculate_reachable(galaxy, dist, count)
+        update_galaxy(galaxy, dist, count, reachable)
 
     return galaxy[4,:], galaxy[5,:], colonized, count
