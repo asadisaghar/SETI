@@ -79,11 +79,11 @@ def CS_random(N_gal):
 # As each step, the *closest* site within the sphere of r=dist is colonized
 def col_inf(galaxy, dist, count, ind):
     dist *= count
-    print 'distance = %e pc'%(dist)
+#    print 'distance = %e pc'%(dist)
     # spot the colonizer!
     N_colonizer = np.size(ind)
-    print 'Mission started at #: '
-    print ind
+#    print 'Mission started at #: '
+#    print ind
     r_col = galaxy[0,ind]
     phi_col = galaxy[1,ind]
     z_col = galaxy[2,ind]
@@ -112,9 +112,9 @@ def col_inf(galaxy, dist, count, ind):
         galaxy[5,reachables] = -1.
         galaxy[4, reachables] = 0
         N_colonized = np.size(reachables)
-        print '%d sites added to the territory!'%(N_colonized)
+#        print '%d sites added to the territory!'%(N_colonized)
     else:
-        print 'Mission failed!'
+#        print 'Mission failed!'
         N_colonized = 0
 
     count += 1
@@ -128,11 +128,11 @@ def col_single(galaxy, dist, count):
     dist *= count
     col_dist = 0
     colonized = 0
-    print 'distance = %e pc'%(dist)
+#    print 'distance = %e pc'%(dist)
     while col_dist < dist:
         # spot the colonizer!
         ind = np.where(galaxy[5,:]==1)[0]
-        print 'Mission started at # %d: '%(ind[0])
+#        print 'Mission started at # %d: '%(ind[0])
         r_col = galaxy[0,ind]
         phi_col = galaxy[1,ind]
         z_col = galaxy[2,ind]
@@ -155,10 +155,10 @@ def col_single(galaxy, dist, count):
 
         N_reachable = np.size(reachable[0])
         if N_reachable == 0:
-            print 'Mission failed!'
+#            print 'Mission failed!'
             count += 1
         else:
-            print 'N_reachable = %d'%(N_reachable)
+#            print 'N_reachable = %d'%(N_reachable)
             N_gal = np.size(galaxy[0,:])
             galaxy_cart2 = np.zeros((2, N_gal))
             galaxy_cart2[0,reachable] = galaxy[0,reachable]*np.cos(galaxy[1,reachable])
@@ -170,14 +170,14 @@ def col_single(galaxy, dist, count):
             d2min = np.min(d2[np.nonzero(d2)])
             dmin = np.sqrt(d2min)
             ind_dmin = np.where(d2==d2min)[1]
-            print'Mission accomplished at # %d: '%(ind_dmin[0])
-            print '(d_min, r_reachable) = (%f, %f)'%(dmin, dist)
+#            print'Mission accomplished at # %d: '%(ind_dmin[0])
+#            print '(d_min, r_reachable) = (%f, %f)'%(dmin, dist)
             galaxy[5,ind] = -1.
             galaxy[5,ind_dmin] = 1.
             galaxy[4, ind_dmin] = 0
             col_dist += dmin
             colonized += 1
             count = 1
-            print '%d sites added to the territory!'%(colonized)
+#            print '%d sites added to the territory!'%(colonized)
 
     return galaxy[4,:], galaxy[5,:], colonized, count
