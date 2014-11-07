@@ -120,6 +120,8 @@ def col_inf(galaxy, dist, count, ind):
     count += 1
     return galaxy[4,:], galaxy[5,:], N_colonized, count
 
+
+
 def calculate_reachable(galaxy, dist, count):
     # spot the colonizer!
     ind = np.where(galaxy[5,:]==1)[0]
@@ -143,13 +145,14 @@ def calculate_reachable(galaxy, dist, count):
         reachable = np.where((galaxy[0,:]<=dist) &
                              (abs(galaxy[2,:]-z_col)<=dist) &
                              (galaxy[5,:]==0))
-    return reachable
+    return x_col, y_col, z_col, ind, reachable
 
-def update_galaxy(galaxy, dist, count, reachable):
+def update_galaxy(galaxy, dist, count, x_col, y_col, z_col, ind, reachable, col_dist, colonized):
     N_reachable = np.size(reachable[0])
     if N_reachable == 0:
 #            print 'Mission failed!'
         count += 1
+        return count, col_dist, colonized
     else:
 #            print 'N_reachable = %d'%(N_reachable)
         N_gal = np.size(galaxy[0,:])
@@ -168,11 +171,11 @@ def update_galaxy(galaxy, dist, count, reachable):
         galaxy[5,ind] = -1.
         galaxy[5,ind_dmin] = 1.
         galaxy[4, ind_dmin] = 0
-        col_dist += dmin
         colonized += 1
         count = 1
 #            print '%d sites added to the territory!'%(colonized)
-
+        return count, col_dist + dmin, colonized
+    
   
 # Particle-toparticle colonization, single probe
 # As each step, the *closest* site within the sphere of r=dist is colonized,
@@ -182,8 +185,9 @@ def col_single(galaxy, dist, count):
     col_dist = 0
     colonized = 0
 #    print 'distance = %e pc'%(dist)
+
     while col_dist < dist:
-        reachable = calculate_reachable(galaxy, dist, count)
-        update_galaxy(galaxy, dist, count, reachable)
+        x_col, y_col, z_col, ind, reachable = calculate_reachable(galaxy, dist, count)
+        col_dist, count, colonized = update_galaxy(galaxy, dist, count, x_col, y_col, z_col, ind, reachable, col_dist, colonized)
 
     return galaxy[4,:], galaxy[5,:], colonized, count
