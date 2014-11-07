@@ -153,31 +153,34 @@ def col_single(galaxy, dist, count):
                                  (abs(galaxy[2,:]-z_col)<=dist) &
                                  (galaxy[5,:]==0))
 
-        N_reachable = np.size(reachable[0])
-        if N_reachable == 0:
+    return reachable
+
+def col_single2(galaxy, dist, count, reachable):
+    N_reachable = np.size(reachable[0])
+    if N_reachable == 0:
 #            print 'Mission failed!'
-            count += 1
-        else:
+        count += 1
+    else:
 #            print 'N_reachable = %d'%(N_reachable)
-            N_gal = np.size(galaxy[0,:])
-            galaxy_cart2 = np.zeros((2, N_gal))
-            galaxy_cart2[0,reachable] = galaxy[0,reachable]*np.cos(galaxy[1,reachable])
-            galaxy_cart2[1,reachable] = galaxy[0,reachable]*np.sin(galaxy[1,reachable])
-            d2 = np.zeros((1, N_gal))
-            d2[0,reachable] = np.power(galaxy_cart2[0,reachable]-x_col,2)
-            d2[0,reachable] += np.power(galaxy_cart2[1,reachable]-y_col,2)
-            d2[0,reachable] += np.power(galaxy[2,reachable]-z_col,2)
-            d2min = np.min(d2[np.nonzero(d2)])
-            dmin = np.sqrt(d2min)
-            ind_dmin = np.where(d2==d2min)[1]
+        N_gal = np.size(galaxy[0,:])
+        galaxy_cart2 = np.zeros((2, N_gal))
+        galaxy_cart2[0,reachable] = galaxy[0,reachable]*np.cos(galaxy[1,reachable])
+        galaxy_cart2[1,reachable] = galaxy[0,reachable]*np.sin(galaxy[1,reachable])
+        d2 = np.zeros((1, N_gal))
+        d2[0,reachable] = np.power(galaxy_cart2[0,reachable]-x_col,2)
+        d2[0,reachable] += np.power(galaxy_cart2[1,reachable]-y_col,2)
+        d2[0,reachable] += np.power(galaxy[2,reachable]-z_col,2)
+        d2min = np.min(d2[np.nonzero(d2)])
+        dmin = np.sqrt(d2min)
+        ind_dmin = np.where(d2==d2min)[1]
 #            print'Mission accomplished at # %d: '%(ind_dmin[0])
 #            print '(d_min, r_reachable) = (%f, %f)'%(dmin, dist)
-            galaxy[5,ind] = -1.
-            galaxy[5,ind_dmin] = 1.
-            galaxy[4, ind_dmin] = 0
-            col_dist += dmin
-            colonized += 1
-            count = 1
+        galaxy[5,ind] = -1.
+        galaxy[5,ind_dmin] = 1.
+        galaxy[4, ind_dmin] = 0
+        col_dist += dmin
+        colonized += 1
+        count = 1
 #            print '%d sites added to the territory!'%(colonized)
 
     return galaxy[4,:], galaxy[5,:], colonized, count

@@ -29,7 +29,7 @@ k = 1000                # kilo!
 
 #     HANDLES      #
 # ================ #
-N_disk = int(1.e4)  # Number of particles in disk
+N_disk = int(1.e3)  # Number of particles in disk
 #dt = np.logspace(0, 2, num=1)*Myr
 dt = 1*Myr
 dt_const = np.logspace(-6, 1, num=1)*Myr
@@ -153,7 +153,6 @@ galaxy_cart2[1,:] = galaxy[0,:]*np.sin(galaxy[1,:])
 #        c=np.log10(galaxy[4,:]), cmap=plt.cm.jet_r)
 #plt.show()
 
-
 def update():
     global t
     with open('logfile.txt', 'a') as logfile:
@@ -169,7 +168,8 @@ def update():
             log[0, i] = t
         # Colonize the galaxy!
         #    print 'Colonizing the galaxy!'
-            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count)
+            reachable = tools.col_single(galaxy, dist, count)
+            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single2(galaxy, dist, count, reachable)
         #    ind = np.where(galaxy[5,:]==1)[0]
         #    galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count, ind)
             col_tot += colonized
