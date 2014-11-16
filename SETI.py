@@ -36,10 +36,9 @@ dt_const = np.logspace(-6, 1, num=1)*Myr
 VC = np.logspace(-1, 0, num=1)*c
 t = 0.  # time (s)
 t_Myr = t/Myr  # time (Myr)
-#dt = dt_const # time step (s)
 dt_Myr = dt/Myr  # time step(Myr)
 dist = VC * (dt-dt_const)    # pc
-t_f = 1.e1*Myr
+t_f = 0.5e1*Myr
 
 # Galactic parameters  #
 # =====================#
@@ -53,7 +52,6 @@ I_0_disk = 20.e9  # disk central intensity
 alpha_disk = h_rho_disk  # disk scale length(pc)
 n_s_disk = 1  # disk Sersic index
 #M_disk = 6.e10  # disk mass(M_solar)
-#VH = 300. #(km/s)
 VH = 300./pc #(pc/s)
 aH = 5.e3 #(pc)   
 
@@ -72,7 +70,6 @@ alpha_gal = alpha_disk
 N_gal = N_disk + N_bulge
 #M_DM = 3.e12  # dark halo mass(M_solar)
 #M_gal = M_disk + M_bulge + M_DM
-t_f = 1.e2*Myr  # Final time(s), i.e. 1Gyr
 R_opt = 2.*h_rho_disk # (kpc)
 V_opt = 300. # (km/s)
 n_s_gal = 4
@@ -81,46 +78,51 @@ n_s_gal = 4
 # ========================== #
 # POS:Thin disk (Cylindrical)
 rho_thin= tools.init_pos(N_thin, 0., h_rho_disk, 'exp')
-# disk position initializing (r)
 phi_thin = tools.init_pos(N_thin, 0., 2*pi, 'uni')
-# disk position initializing (phi)
 z_thin = tools.init_z(N_thin, 0., h_z_thin, 'exp')
-# thin disk position initializing (z)
+
 # POS:Thick disk (Cylindrical)
 rho_thick = tools.init_pos(N_thick, 0, h_rho_disk, 'exp')
-# disk position initializing (r)
 phi_thick = tools.init_pos(N_thick, 0., 2*pi, 'uni')
-# disk position initializing (phi)
 z_thick = tools.init_z(N_thick, 0., h_z_thick, 'exp')
-# thin disk position initializing (z)
+
 # POS:Disk (Cylindrical)
 rho_disk = np.append(rho_thin, rho_thick)
 phi_disk = np.append(phi_thin, phi_thick)
 z_disk = np.append(z_thin, z_thick)
+
 # POS:Bulge (Spherical)
 r_bulge = tools.init_pos(N_bulge, 0., R_bulge, 'uni')
 phi_bulge = tools.init_pos(N_bulge, 0., pi, 'uni')
 theta_bulge = tools.init_pos(N_bulge, 0., 2.*pi, 'uni')
+
 # POS:Bulge (Cylindrical)
 rho_bulge = r_bulge*np.sin(phi_bulge)
 z_bulge = r_bulge*np.cos(phi_bulge)
 phi_bulge = theta_bulge
+
 # VEL:Disk (Rotation curve analytic relation)
 V_disk = tools.v_r_curve(rho_disk, VH, aH)
+
 # VEL:Bulge (Gaussian dist. with given mean and dispersion)
 V_bulge = tools.init_norm(mean_bulge, sigma_bulge, N_bulge)
+
 # I(I-band):Disk
 I_disk = tools.init_sersic(I_0_disk, alpha_disk, n_s_disk, rho_disk)
+
 # L(I-band):Bulge (Gaussian dist. with given total L)
 lgI_I0 = np.power(rho_bulge, 0.25)
 I_bulge = I_0_bulge*np.exp(-lgI_I0)
+
 # CS:Galaxy (Colonisation Status)
 CS_gal = tools.CS_random(N_gal)
+
 # POS:Galaxy
 rho_gal = np.append(rho_disk, rho_bulge)
 phi_gal = np.append(phi_disk, phi_bulge)
 z_gal = np.append(z_disk, z_bulge)
 V_gal = np.append(V_disk, V_bulge)
+
 # This is just to keep the galaxy array consistent, NOT for SB measurement
 I_gal = np.append(I_disk, I_bulge)
 
@@ -160,24 +162,21 @@ def update():
     #    UPDATING (t=t+dt)    #
     # ======================= #
         count = 1
-        #cnt_p = 0
         col_tot = 0.
         log = np.zeros((3, int(t_f/dt)+1))
         for i in xrange(int(t_f/dt)+1):
-        #    print '\n-----------------\nt = %f Myr\n-----------------'%(t/Myr)
             t = i*dt
+            print '\n-----------------\nt = %f Myr\n-----------------'%(t/Myr)
             log[0, i] = t
         # Colonize the galaxy!
-        #    print 'Colonizing the galaxy!'
             galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count)
-        #    ind = np.where(galaxy[5,:]==1)[0]
-        #    galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count, ind)
+#            ind = np.where(galaxy[5,:]==1)[0]
+#            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count, ind)
             col_tot += colonized
             log[1, i] = col_tot
             log[2, i] = np.sum(galaxy[4,:])
             i += 1
         # Rotate the galaxy!
-        #    print ('Rotating the galaxy!')
             galaxy[1,0:N_disk] += np.arcsin(galaxy[3,0:N_disk]*dt/galaxy[0,0:N_disk])
             galaxy_cart2[0,:] = galaxy[0,:]*np.cos(galaxy[1,:])
             galaxy_cart2[1,:] = galaxy[0,:]*np.sin(galaxy[1,:])
@@ -190,4 +189,4 @@ def update():
     total_time=end_time-start_time
     #print('\n========================\nIt took %f s!\n========================'%(total_time))
 
-cProfile.run("update()", "stats")
+cProfile.run("update()")
