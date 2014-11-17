@@ -27,11 +27,11 @@ G = 4.302e-3/(pc**2)            # pc.M_solar^-1.(pc/s)^2
 
 #     HANDLES      #
 # ================ #
-N_disk = int(1.e5)  # Number of particles in disk
+N_disk = int(1.e6)  # Number of particles in disk
 #dt = np.logspace(0, 2, num=1)*Myr
 dt = 0.1*Myr    # (s)
 dt_const = np.logspace(-6, 1, num=1)*Myr    # (s)
-VC = np.logspace(-4, 0, num=1)*c    # (pc/s)
+VC = np.logspace(-2, 0, num=1)*c    # (pc/s)
 t = 0.  # time (s)
 t_Myr = t/Myr  # time (Myr)
 dt_Myr = dt/Myr  # time step(Myr)
@@ -165,13 +165,13 @@ def update():
         logg = np.zeros(((int(t_f/dt)+1), 4))
         for i in xrange(int(t_f/dt)+1):
             t = i*dt
-#            print '\n-----------------\nt = %f Myr\n-----------------'%(t/Myr)
+            print '\n-----------------\nt = %f Myr\n-----------------'%(t/Myr)
             logg[i, 0] = t
         # Colonize the galaxy!
             dist = VC * (dt-dt_const)    # (pc)
-#            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count)
-#            ind = np.where(galaxy[5,:]==1)[0]
-            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count)
+            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count)
+#            ind = np.where(CS_gal==1)[0]
+#            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count, ind)
             col_tot += colonized
             count_tot += count
             logg[i, 1] = col_tot

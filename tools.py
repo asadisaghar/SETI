@@ -77,11 +77,26 @@ def CS_random(N_gal):
 
 # Spherical colonization, infinite probes
 # As each step, the *closest* site within the sphere of r=dist is colonized
-def col_inf(galaxy, dist, count):
+def col_inf(galaxy, dist, count, ind):
     dist *= count
     col_dist = 0
     colonized = 0
-    ind, reachable = calculate_reachable(galaxy, dist)
+    r_col = galaxy[0,ind]
+    phi_col = galaxy[1,ind]
+    z_col = galaxy[2,ind]
+#    print dist
+#    print r_col
+    if dist<=r_col:
+        dphi = np.arcsin(dist/r_col)
+        reachable = np.where((abs(galaxy[0,:]-r_col)<=dist) &
+                             (abs(galaxy[1,:]-phi_col)<=dphi) &
+                             (abs(galaxy[2,:]-z_col)<=dist) &
+                             (galaxy[5,:]==0))
+    else:
+#            sys.exit('OUCH! Send slower probes or check on them at shorter time steps!')
+        reachable = np.where((galaxy[0,:]<=dist) &
+                             (abs(galaxy[2,:]-z_col)<=dist) &
+                             (galaxy[5,:]==0))
     N_reachable = np.size(reachable[0])
 #    print N_reachable
 #    print dist
@@ -119,7 +134,7 @@ def col_single(galaxy, dist, count):
     col_dist = 0
     colonized = 0
 #    print 'distance = %e pc'%(dist)
-    ind, reachable = calculate_reachable(galaxy, dist)
+    ind, reachable = calculate_reachable(galaxy, dist, ind=0)
     N_reachable = np.size(reachable[0])
 #    print '%d Reachable sites exist! %d-%f'%(N_reachable, count, dist)
     if N_reachable>0:
@@ -138,15 +153,13 @@ def col_single(galaxy, dist, count):
     return galaxy[4,:], galaxy[5,:], colonized, count
 
 
-def calculate_reachable(galaxy, dist):
+def calculate_reachable(galaxy, dist, ind):
     # spot the colonizer!
-    ind = np.where(galaxy[5,:]==1)[0]
+#    ind = np.where(galaxy[5,:]==1)[0]
 #    print 'Mission started at # %d: '%(ind[0])
     r_col = galaxy[0,ind]
     phi_col = galaxy[1,ind]
     z_col = galaxy[2,ind]
-    print dist
-    print r_col
 #    x_col = r_col*cos(phi_col)
 #    y_col = r_col*sin(phi_col)
     # mark the reachable sphere, i.e. dr = dist, dz = dist, dph = arcsin(dist/r_col)
