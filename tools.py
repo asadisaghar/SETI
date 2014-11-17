@@ -12,19 +12,20 @@ import matplotlib.pyplot as plt
 #plt.rc("legend", fontsize=16)
 import sys
 
-##        CONSTANTS        ##
+#          CONSTANTS       ##
 # ========================= #
-G = 4.302e-6            #kpc.M_solar^-1.(km/s)^2 
-c_pcyr = 0.306594845    #pc/yr
-yr = pi*1.e7            #s
-c_pcs = c_pcyr/yr        #pc/s
+yr = pi*1.e7            # s
+Myr = yr*1.e6      # s
+c_pcyr = 0.306594845    # pc/yr
+c_pcs = c_pcyr/yr       # pc/s
 c = c_pcs
-pc = 3.0857e13             #km
-Myr = pi*1.e7*1.e6        #s
-k = 1000.                 #kilo!
+pc = 3.0857e13          # km
+kilo = 1000                # kilo!
+G = 4.302e-3/(pc**2)            # pc.M_solar^-1.(pc/s)^2 
 np.random.seed(10)
 almost_black = '#262626'    
 # ========================= #
+
 # Initialization (Uniform or Exponential), no signs. rho, and phi of the disk, and all three(r, phi, theta) of the bulge
 def    init_pos(N, low, high_scale, dist):
     random.seed(10)
@@ -76,47 +77,39 @@ def CS_random(N_gal):
 
 # Spherical colonization, infinite probes
 # As each step, the *closest* site within the sphere of r=dist is colonized
-def col_inf(galaxy, dist, count, ind):
+def col_inf(galaxy, dist, count):
     dist *= count
-    print 'distance = %e pc'%(dist)
-    # spot the colonizer!
-    N_colonizer = np.size(ind)
-    print 'Mission started at #: '
-    print ind
-    r_col = galaxy[0,ind]
-    phi_col = galaxy[1,ind]
-    z_col = galaxy[2,ind]
-    x_col = r_col*np.cos(phi_col)
-    y_col = r_col*np.sin(phi_col)
-    # mark the reachable sphere, i.e. dr = dist, dz = dist, dph = arcsin(dist/r_col)
-    N_gal = np.size(galaxy[0,:])
-    galaxy_cart2 = np.zeros((2, N_gal))
-    galaxy_cart2[0,:] = galaxy[0,:]*np.cos(galaxy[1,:])
-    galaxy_cart2[1,:] = galaxy[0,:]*np.sin(galaxy[1,:])
-    d2 = np.zeros((1, N_gal))
-    d2[0,:] = np.power(galaxy_cart2[0,:]-x_col,2)
-    d2[0,:] += np.power(galaxy_cart2[1,:]-y_col,2)
-    d2[0,:] += np.power(galaxy[2,:]-z_col,2)
-
-#    for i in xrange(N_colonizer):
-#        d2[i,:] = np.power(galaxy_cart2[0,:]-x_col[i],2)
-#        d2[i,:] += np.power(galaxy_cart2[1,:]-y_col[i],2)
-#        d2[i,:] += np.power(galaxy[2,:]-z_col[i],2)
-     d2min = d2[d2 !=0].min()
-#    d2min = np.min(d2[np.nonzero(d2)])
-    if d2min < dist[0]:
-        reachables = np.where((d2<=dist) & (galaxy[5,:]==0))
-#        galaxy[5,ind] = -1.
-        galaxy[5,reachables] = -1.
-        galaxy[4, reachables] = 0
-        N_colonized = np.size(reachables)
-#        print '%d sites added to the territory!'%(N_colonized)
+    col_dist = 0
+    colonized = 0
+    ind, reachable = calculate_reachable(galaxy, dist)
+    N_reachable = np.size(reachable[0])
+#    print N_reachable
+#    print dist
+#    print col_dist
+    if N_reachable>0:
+        while col_dist < dist/2.:
+#            galaxy = update_colonization_inf(galaxy, dist, ind,
+#                                             reachable)
+            galaxy[5, ind] = -1.
+            galaxy[5, reachable] = 1.
+            galaxy[4, reachable] = 0.
+            colonized += N_reachable
+            col_dist += dist
+            print '%d new sites!'%(colonized)
     else:
-#        print 'Mission failed!'
-        N_colonized = 0
+        print 'Dead end! %d-%f'%(count, dist)
+        count +=1
 
-    count += 1
-    return galaxy[4,:], galaxy[5,:], N_colonized, count
+    return galaxy[4,:], galaxy[5,:], colonized, count
+
+#def update_colonization_inf(galaxy, dist, ind, reachable):
+#        r_col = galaxy[0,ind]
+#        phi_col = galaxy[1,ind]
+#        z_col = galaxy[2,ind]
+#        galaxy[5,ind] = -1.
+#        galaxy[5,reachable] = 1.
+#        galaxy[4, reachable] = 0
+#        return galaxy
 
 # Particle-toparticle colonization, single probe
 # As each step, the *closest* site within the sphere of r=dist is colonized,
@@ -126,17 +119,21 @@ def col_single(galaxy, dist, count):
     col_dist = 0
     colonized = 0
 #    print 'distance = %e pc'%(dist)
-
-    while col_dist < dist:
-        ind, reachable = calculate_reachable(galaxy, dist)
-        N_reachable = np.size(reachable[0])
-        if N_reachable>0:
+    ind, reachable = calculate_reachable(galaxy, dist)
+    N_reachable = np.size(reachable[0])
+#    print '%d Reachable sites exist! %d-%f'%(N_reachable, count, dist)
+    if N_reachable>0:
+        while col_dist < dist/2.:
             galaxy, dmin = update_colonization(galaxy, dist, ind,
-                                                      reachable)
+                                               reachable)
             colonized += 1
+#            print '%d newly colonized'%(colonized)
+#            print '%f pc to go!'%(dist-col_dist)
             col_dist += dmin
-        else:
-            count +=1
+            count = 1
+    else:
+        print 'Dead end! %d-%f'%(count, dist)
+        count +=1
 
     return galaxy[4,:], galaxy[5,:], colonized, count
 
@@ -148,6 +145,8 @@ def calculate_reachable(galaxy, dist):
     r_col = galaxy[0,ind]
     phi_col = galaxy[1,ind]
     z_col = galaxy[2,ind]
+    print dist
+    print r_col
 #    x_col = r_col*cos(phi_col)
 #    y_col = r_col*sin(phi_col)
     # mark the reachable sphere, i.e. dr = dist, dz = dist, dph = arcsin(dist/r_col)
@@ -187,3 +186,5 @@ def update_colonization(galaxy, dist, ind, reachable):
         galaxy[5,ind_dmin] = 1.
         galaxy[4, ind_dmin] = 0
         return galaxy, dmin
+
+

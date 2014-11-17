@@ -1,4 +1,3 @@
-import time
 import numpy as np
 from math import *
 import matplotlib
@@ -12,57 +11,56 @@ import matplotlib.pyplot as plt
 #from scipy.optimize import curve_fit
 import random
 import tools 
-start_time = time.time()
 import cProfile
 
 #        CONSTANTS     ##
 # ===================== #
-G = 4.302e-6            # kpc.M_solar^-1.(km/s)^2 
-c_pcyr = 0.306594845    # pc/yr
 yr = pi*1.e7            # s
+Myr = yr*1.e6      # s
+c_pcyr = 0.306594845    # pc/yr
 c_pcs = c_pcyr/yr       # pc/s
 c = c_pcs
 pc = 3.0857e13          # km
-Myr = pi*1.e7*1.e6      # s
-k = 1000                # kilo!
+kilo = 1000                # kilo!
+G = 4.302e-3/(pc**2)            # pc.M_solar^-1.(pc/s)^2 
 # ===================== #
 
 #     HANDLES      #
 # ================ #
-N_disk = int(1.e4)  # Number of particles in disk
+N_disk = int(1.e5)  # Number of particles in disk
 #dt = np.logspace(0, 2, num=1)*Myr
-dt = 1*Myr
-dt_const = np.logspace(-6, 1, num=1)*Myr
-VC = np.logspace(-1, 0, num=1)*c
+dt = 0.1*Myr    # (s)
+dt_const = np.logspace(-6, 1, num=1)*Myr    # (s)
+VC = np.logspace(-4, 0, num=1)*c    # (pc/s)
 t = 0.  # time (s)
 t_Myr = t/Myr  # time (Myr)
 dt_Myr = dt/Myr  # time step(Myr)
-dist = VC * (dt-dt_const)    # pc
-t_f = 0.5e1*Myr
+#dist = VC * (dt-dt_const)    # (pc)
+t_f = 1.e3*Myr  # (s)
 
 # Galactic parameters  #
 # =====================#
 # DISK
 N_thin = int(0.90*N_disk)
 N_thick = int(N_disk-N_thin)
-h_z_thin = 3.e2  # scale height of the thin disk(pc)(MW:300-400pc)
-h_z_thick = 5.e2  # scale height of the thick disk(pc)(MW:1-1.5kpc)
-h_rho_disk = 5.e3  # scale length of the thin disk(pc)(MW:3kpc)
+h_z_thin = 3.e2  # scale height of the thin disk (pc)
+h_z_thick = 5.e2  # scale height of the thick disk (pc)
+h_rho_disk = 5.e3  # scale length of the thin disk (pc)
 I_0_disk = 20.e9  # disk central intensity
-alpha_disk = h_rho_disk  # disk scale length(pc)
+alpha_disk = h_rho_disk  # disk scale length (pc)
 n_s_disk = 1  # disk Sersic index
-#M_disk = 6.e10  # disk mass(M_solar)
-VH = 300./pc #(pc/s)
-aH = 5.e3 #(pc)   
+#M_disk = 6.e10  # disk mass (M_solar)
+VH = 300./pc    # (pc/s)
+aH = 5.e3   # (pc)   
 
 # BULGE
 N_bulge = int(0.33000*N_disk)
-R_bulge = 2.7e3  # bulge radius(pc)(MW:a few kpc)
+R_bulge = 2.7e3  # bulge radius(pc)
 I_0_bulge = 5.e9  # bulge central intensity
 alpha_bulge = R_bulge/3.  # bulge scale length(pc)
 n_s_bulge = 5  # Bulge Sersic index(in range: 1.5-10)
-mean_bulge = 200 # (My arbitrary value!!)(km/s) 
-sigma_bulge = 130 # Velocity dispercion(km/s)
+mean_bulge = 200./pc # (My arbitrary value!!) (pc/s) 
+sigma_bulge = 130./pc # Velocity dispercion (pc/s)
 #M_bulge = 2.e10  # bulge mass(M_solar)
 
 #GALAXY
@@ -70,8 +68,8 @@ alpha_gal = alpha_disk
 N_gal = N_disk + N_bulge
 #M_DM = 3.e12  # dark halo mass(M_solar)
 #M_gal = M_disk + M_bulge + M_DM
-R_opt = 2.*h_rho_disk # (kpc)
-V_opt = 300. # (km/s)
+R_opt = 2.*h_rho_disk # (pc)
+V_opt = 300./pc # (pc/s)
 n_s_gal = 4
 
 #    Initialisation (t=0)    #
@@ -158,35 +156,38 @@ galaxy_cart2[1,:] = galaxy[0,:]*np.sin(galaxy[1,:])
 
 def update():
     global t
-    with open('logfile.txt', 'a') as logfile:
+    with open('logfile.txt', 'w') as logfile:
     #    UPDATING (t=t+dt)    #
     # ======================= #
         count = 1
         col_tot = 0.
-        log = np.zeros((3, int(t_f/dt)+1))
+        count_tot = 0.
+        logg = np.zeros(((int(t_f/dt)+1), 4))
         for i in xrange(int(t_f/dt)+1):
             t = i*dt
-            print '\n-----------------\nt = %f Myr\n-----------------'%(t/Myr)
-            log[0, i] = t
+#            print '\n-----------------\nt = %f Myr\n-----------------'%(t/Myr)
+            logg[i, 0] = t
         # Colonize the galaxy!
-            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count)
+            dist = VC * (dt-dt_const)    # (pc)
+#            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count)
 #            ind = np.where(galaxy[5,:]==1)[0]
-#            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count, ind)
+            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count)
             col_tot += colonized
-            log[1, i] = col_tot
-            log[2, i] = np.sum(galaxy[4,:])
-            i += 1
+            count_tot += count
+            logg[i, 1] = col_tot
+            logg[i, 2] = np.sum(galaxy[4,:])
+            logg[i, 3] = np.sum(abs(galaxy[5,:]))-1
         # Rotate the galaxy!
             galaxy[1,0:N_disk] += np.arcsin(galaxy[3,0:N_disk]*dt/galaxy[0,0:N_disk])
             galaxy_cart2[0,:] = galaxy[0,:]*np.cos(galaxy[1,:])
             galaxy_cart2[1,:] = galaxy[0,:]*np.sin(galaxy[1,:])
-            # logfile.write('%f\t%f\t%f\n' %(log[0,:], log[1,:], log[2,:]))
+#            if t%Myr==0:
+            logfile.write('%e\t%e\t%e\t%e\n' %(logg[i,0], logg[i,1], logg[i,2], logg[i,3]))
+
+            i += 1
 
     logfile.close()
     #       TIMING          #
     # ===================== #
-    end_time=time.time()
-    total_time=end_time-start_time
-    #print('\n========================\nIt took %f s!\n========================'%(total_time))
 
 cProfile.run("update()")
