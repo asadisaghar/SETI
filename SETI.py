@@ -71,6 +71,7 @@ N_gal = N_disk + N_bulge
 R_opt = 2.*h_rho_disk # (pc)
 V_opt = 300./pc # (pc/s)
 n_s_gal = 4
+L2Lstar = 0.1
 
 #    Initialisation (t=0)    #
 # ========================== #
@@ -100,7 +101,8 @@ z_bulge = r_bulge*np.cos(phi_bulge)
 phi_bulge = theta_bulge
 
 # VEL:Disk (Rotation curve analytic relation)
-V_disk = tools.v_r_curve(rho_disk, VH, aH)
+#V_disk = tools.v_r_curve(rho_disk, VH, aH)
+V_disk = tools.v_rotational(rho_disk, V_opt, R_opt, L2Lstar)
 
 # VEL:Bulge (Gaussian dist. with given mean and dispersion)
 V_bulge = tools.init_norm(mean_bulge, sigma_bulge, N_bulge)
@@ -156,35 +158,38 @@ galaxy_cart2[1,:] = galaxy[0,:]*np.sin(galaxy[1,:])
 
 def update():
     global t
-    with open('logfile.txt', 'w') as logfile:
-    #    UPDATING (t=t+dt)    #
-    # ======================= #
-        count = 1
-        col_tot = 0.
-        count_tot = 0.
-        logg = np.zeros(((int(t_f/dt)+1), 4))
-        for i in xrange(int(t_f/dt)+1):
-            t = i*dt
-            print '\n-----------------\nt = %f Myr\n-----------------'%(t/Myr)
-            logg[i, 0] = t
-        # Colonize the galaxy!
-            dist = VC * (dt-dt_const)    # (pc)
-            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count)
-#            ind = np.where(CS_gal==1)[0]
-#            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count, ind)
-            col_tot += colonized
-            count_tot += count
-            logg[i, 1] = col_tot
-            logg[i, 2] = np.sum(galaxy[4,:])
-            logg[i, 3] = np.sum(abs(galaxy[5,:]))-1
-        # Rotate the galaxy!
-            galaxy[1,0:N_disk] += np.arcsin(galaxy[3,0:N_disk]*dt/galaxy[0,0:N_disk])
-            galaxy_cart2[0,:] = galaxy[0,:]*np.cos(galaxy[1,:])
-            galaxy_cart2[1,:] = galaxy[0,:]*np.sin(galaxy[1,:])
-#            if t%Myr==0:
+    logfile = open('logfile.txt', 'w')
+#    with open('logfile.txt', 'w') as logfile:
+#    UPDATING (t=t+dt)    #
+# ======================= #
+    count = 1
+    col_tot = 0.
+    count_tot = 0.
+    logg = np.zeros(((int(t_f/dt)+1), 4))
+    for i in xrange(int(t_f/dt)+1):
+        t = i*dt
+#        print '\n-----------------\nt = %f Myr\n-----------------'%(t/Myr)
+        logg[i, 0] = t
+    # Colonize the galaxy!
+        dist = VC * (dt-dt_const)    # (pc)
+#        galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count)
+        ind = np.where(CS_gal==1)[0]
+        galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count, ind)
+        col_tot += colonized
+        count_tot += count
+        logg[i, 1] = col_tot
+        logg[i, 2] = np.sum(galaxy[4,:])
+        logg[i, 3] = np.sum(abs(galaxy[5,:]))+1
+    # Rotate the galaxy!
+        galaxy[1,0:N_disk] += np.arcsin(galaxy[3,0:N_disk]*dt/galaxy[0,0:N_disk])
+        galaxy_cart2[0,:] = galaxy[0,:]*np.cos(galaxy[1,:])
+        galaxy_cart2[1,:] = galaxy[0,:]*np.sin(galaxy[1,:])
+        if i%(10)==0:
             logfile.write('%e\t%e\t%e\t%e\n' %(logg[i,0], logg[i,1], logg[i,2], logg[i,3]))
+            print '\n-----------------\nt = %f Myr\n-----------------'%(t/Myr)
 
-            i += 1
+        i += 1
+
 
     logfile.close()
     #       TIMING          #

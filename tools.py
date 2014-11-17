@@ -57,10 +57,19 @@ def    init_norm(loc, scale, size):
     return init
 
 # Calculating velocity as a function of r to force the rotation curve (A)
-def v_r_curve(r, VH, aH):
-    V = VH*np.sqrt(1.-(aH/r)*np.arctan(r/aH))
-    #Not the most accurate, but easiest!! Consider the Universal SSP instead...
-    return V
+def v_rotational(r, V_opt, R_opt, L2Lstar):
+    V2_opt = np.power(V_opt, 2)
+    x = r/R_opt
+    a = 1.5*np.power(L2Lstar, 1.5)
+    beta = 0.72+0.44*np.log10(L2Lstar)
+    # Disk component
+    V2_disk = V2_opt*beta*1.97*np.power(x, 1.22)/np.power((x**2+0.78**2), 1.43)
+    # DM component
+    V2_DM = V2_opt*(1. - beta)*(1. + a**2)*x**2/(x**2 + a**2)
+
+    V2_rot = V2_disk + V2_DM
+    return np.sqrt(V2_rot)
+
 
 #Initializing disk luminosity distribution
 def init_sersic(I_0, alpha, n_s, r):
@@ -141,6 +150,7 @@ def col_single(galaxy, dist, count):
         while col_dist < dist/2.:
             galaxy, dmin = update_colonization(galaxy, dist, ind,
                                                reachable)
+            
             colonized += 1
 #            print '%d newly colonized'%(colonized)
 #            print '%f pc to go!'%(dist-col_dist)
@@ -189,15 +199,17 @@ def update_colonization(galaxy, dist, ind, reachable):
         d2[0,reachable] = np.power(galaxy_cart2[0,reachable]-x_col,2)
         d2[0,reachable] += np.power(galaxy_cart2[1,reachable]-y_col,2)
         d2[0,reachable] += np.power(galaxy[2,reachable]-z_col,2)
+#        print 'size(d2):%d'%(np.size(d2))
         d2min = d2[d2 !=0].min()
-#        d2min = np.min(d2[np.nonzero(d2)])
+#        print d2min
         dmin = np.sqrt(d2min)
         ind_dmin = np.where(d2==d2min)[1]
-#        print'Mission accomplished at # %d: '%(ind_dmin[0])
-#        print '(d_min, r_reachable) = (%f, %f)'%(dmin, dist)
         galaxy[5,ind] = -1.
         galaxy[5,ind_dmin] = 1.
         galaxy[4, ind_dmin] = 0
+#        d2min = np.min(d2[np.nonzero(d2)])
+#        print'Mission accomplished at # %d: '%(ind_dmin[0])
+#        print '(d_min, r_reachable) = (%f, %f)'%(dmin, dist)
         return galaxy, dmin
 
 
