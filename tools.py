@@ -72,17 +72,13 @@ def CS_manual(N_gal, galaxy, start_r, r_err):
     random.seed(10)
     while True:
         try:
-            print start_r, r_err
             colonizer = np.where((abs(galaxy[0,:]-start_r)<=r_err))[0]
-            print 'potential colonizers:%s'%(colonizer)
             N_potential = np.size(colonizer)
-            print N_potential
             RNDind = np.random.random_integers(0, N_potential-1)
-            print 'randomly selected colonizer index:%d'%(RNDind)
             CS[colonizer[RNDind]] = 1
             break
         except ValueError:
-            print 'Try a larger value! '
+            print 'No particle found! Try a larger value for r_err = %f!'%(r_err)
             r_err = float(raw_input('Enter flexibility in r in pc! '))
     return CS
 
@@ -120,9 +116,8 @@ def col_inf(galaxy, dist, count, ind):
             galaxy[4, reachable] = 0.
             colonized += N_reachable
             col_dist += dist
-            print '%d new sites!'%(colonized)
+
     else:
-        print 'Dead end! %d-%f'%(count, dist)
         count +=1
 
     return galaxy[4,:], galaxy[5,:], colonized, count
@@ -130,7 +125,7 @@ def col_inf(galaxy, dist, count, ind):
 # Particle-toparticle colonization, single probe
 # As each step, the *closest* site within the sphere of r=dist is colonized,
 # ONLY by the sites which are colonized during the FIRST previous step
-def col_single(galaxy, dist, count):
+def col_single(galaxy, dist, count, coveringFraction):
     dist *= count
     col_dist = 0
     colonized = 0
@@ -139,13 +134,12 @@ def col_single(galaxy, dist, count):
     if N_reachable>0:
         while col_dist < dist/2.:
             galaxy, dmin = update_colonization(galaxy, dist, ind,
-                                               reachable)
+                                               reachable, coveringFraction)
             
             colonized += 1
             col_dist += dmin
             count = 1
     else:
-        print 'Dead end! %d-%f'%(count, dist)
         count +=1
 
     return galaxy[4,:], galaxy[5,:], colonized, count
@@ -169,7 +163,7 @@ def calculate_reachable(galaxy, dist, ind):
                              (galaxy[5,:]==0))
     return ind, reachable
 
-def update_colonization(galaxy, dist, ind, reachable):
+def update_colonization(galaxy, dist, ind, reachable, coveringFraction):
         r_col = galaxy[0,ind]
         phi_col = galaxy[1,ind]
         z_col = galaxy[2,ind]
@@ -187,5 +181,5 @@ def update_colonization(galaxy, dist, ind, reachable):
         ind_dmin = np.where(d2==d2min)[1]
         galaxy[5,ind] = -1.
         galaxy[5,ind_dmin] = 1.
-        galaxy[4, ind_dmin] = 0
+        galaxy[4, ind_dmin] *= (1. - coveringFraction) 
         return galaxy, dmin

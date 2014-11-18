@@ -22,13 +22,14 @@ N_disk = int(1.e6)  # number of particles in disk (same order as N_gal)
 dt = np.logspace(-1, 1, num=1)*Myr  # galactic rotation time step
 dt_const = np.logspace(-6, 1, num=1)*Myr  # construction time delay
 VC = np.logspace(-2, 0, num=1)*cSpeed  # probe velocity
-t_f = 1.e4*Myr  # time to stop
-SingleProbe = True
+t_f = 1.e2*Myr  # time to stop
+SingleProbe = False
 InfiniteProbe = not(SingleProbe)
+coveringFraction = 1.
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 3.e3  # radial distance from the galactic center in pc
-r_err = 800.
+start_r = 3.e2  # radial distance from the galactic center in pc
+r_err = 80.
 # ===================== #
 #  Galactic parameters  #
 # ===================== #
@@ -127,20 +128,11 @@ else:
     CS_gal = tools.CS_manual(N_gal, galaxy, start_r, r_err)
 galaxy[5,:] = CS_gal
 
-headColonizer = np.where(CS_gal==1)[0]
-#print (galaxy[0,headColonizer], galaxy[2, headColonizer])
-print galaxy[0,headColonizer]
-print galaxy[2,headColonizer]
-
-galaxy_cart2 = np.zeros((2, N_gal))
-galaxy_cart2[0,:] = galaxy[0,:]*np.cos(galaxy[1,:])
-galaxy_cart2[1,:] = galaxy[0,:]*np.sin(galaxy[1,:])
-
 def update():
     global t
     logfile = open('logfile.txt', 'w')
-#    UPDATING (t=t+dt)    #
-# ======================= #
+#    UPDATING    #
+# ============== #
     count = 1
     col_tot = 0.
     count_tot = 0.
@@ -151,7 +143,7 @@ def update():
     # Colonize the galaxy!
         dist = VC * (dt-dt_const)
         if SingleProbe:
-            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count)
+            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count, coveringFraction)
         elif InfiniteProbe:
             ind = np.where(CS_gal==1)[0]
             galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count, ind)
@@ -160,14 +152,13 @@ def update():
         count_tot += count
         logg[i, 1] = col_tot
         logg[i, 2] = np.sum(galaxy[4,:])
-        logg[i, 3] = np.sum(abs(galaxy[5,:]))+1
+        logg[i, 3] = np.sum(abs(galaxy[5,:]))+2
     # Rotate the galaxy!
-        galaxy[1,0:N_disk] += np.arcsin(galaxy[3,0:N_disk]*dt/galaxy[0,0:N_disk])
-        galaxy_cart2[0,:] = galaxy[0,:]*np.cos(galaxy[1,:])
-        galaxy_cart2[1,:] = galaxy[0,:]*np.sin(galaxy[1,:])
+        galaxy[1,0:N_disk] += galaxy[3,0:N_disk]*dt/galaxy[0,0:N_disk]
+        galaxy[1,N_disk:-1] += galaxy[3,N_disk:-1]*dt/galaxy[0,N_disk:-1]
         if t%Myr == 0:
             logfile.write('%e\t%e\t%e\t%e\n' %(logg[i,0], logg[i,1], logg[i,2], logg[i,3]))
-            print 't = %f Myr\n-----------------'%(t/Myr)
+            print 't = %.2f Myr\n-------------'%(t/Myr)
 
         i += 1
 
