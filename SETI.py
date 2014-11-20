@@ -142,8 +142,7 @@ def update():
     col_tot = 0.
     count_tot = 0.
     logg = np.zeros(((int(t_f/dt)+1), 3))
-    while col_tot < N_gal:
-#    for i in xrange(int(t_f/dt)+1):
+    while col_tot < N_gal or t<t_f:
         t = i*dt
         logg[i, 0] = t/Myr
     # Colonize the galaxy!
