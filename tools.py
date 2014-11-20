@@ -10,7 +10,7 @@ plt.rc("axes", labelsize=16, titlesize=20)
 plt.rc("xtick", labelsize=16)
 plt.rc("ytick", labelsize=16)
 plt.rc("legend", fontsize=16)
-random.seed(1234)
+RS = 123124
 # ===================== #
 #        CONSTANTS      #
 # ===================== #
@@ -27,6 +27,7 @@ colors = ['#d7191c', '#fdae61', '#abd9e9','#2c7bb6']
 # ===================== #
 # Initialization (Uniform or Exponential), no signs. rho, and phi of the disk, and all three(r, phi, theta) of the bulge
 def    init_pos(N, low, high_scale, dist):
+    random.seed(RS)
     if dist == 'exp':
         init = np.random.exponential(high_scale, N)
     elif dist == 'uni':
@@ -36,6 +37,7 @@ def    init_pos(N, low, high_scale, dist):
 
 # Initialization (Uniform or Exponential), with random signs. z component of the disk
 def    init_z(N, low, high_scale, dist):
+    random.seed(RS)
     if dist == 'exp':
         init = np.random.exponential(high_scale, N)
     elif dist == 'uni':
@@ -49,6 +51,7 @@ def    init_z(N, low, high_scale, dist):
 
 # Initialization (Normal)
 def    init_norm(loc, scale, size):
+    random.seed(RS)
     init = np.random.normal(loc, scale, size)
     return init
 
@@ -90,7 +93,7 @@ def CS_manual(N_gal, galaxy, start_r, r_err):
 
 def CS_random(N_gal):
     CS = np.zeros(N_gal)
-    random.seed(11230)
+    random.seed(RS)
     colonizer = int(np.random.uniform(0, N_gal-1))
     CS[colonizer] = 1
     return CS
@@ -135,11 +138,12 @@ def col_single(galaxy, dist, count, coveringFraction):
     dist *= count
     col_dist = 0
     colonized = 0
+    ind_dmin = 0
     ind, reachable = calculate_reachable(galaxy, dist, ind=0)
     N_reachable = np.size(reachable[0])
     if N_reachable>0:
         while col_dist < dist/2.:
-            galaxy, dmin = update_colonization(galaxy, dist, ind,
+            galaxy, dmin , ind_dmin = update_colonization(galaxy, dist, ind,
                                                reachable, coveringFraction)
             
             colonized += 1
@@ -148,7 +152,7 @@ def col_single(galaxy, dist, count, coveringFraction):
     else:
         count +=1
 
-    return galaxy[4,:], galaxy[5,:], colonized, count
+    return galaxy[4,:], galaxy[5,:], colonized, count, ind_dmin
 
 
 def calculate_reachable(galaxy, dist, ind):
@@ -198,16 +202,13 @@ def update_colonization(galaxy, dist, ind, reachable, coveringFraction):
         galaxy[5,ind] = -1.
         galaxy[5,ind_dmin] = 1.
         galaxy[4, ind_dmin] *= (1. - coveringFraction) 
-        return galaxy, dmin
+        return galaxy, dmin, ind_dmin
 
 # ==================== #
 #        PLOTTING      #
 # ==================== #
 def infplot(name, N_gal, Li, r_colonizer, VC, dt_const):
-    fig=plt.figure(figsize=(5, 5))
-    N_disk = 1e6
-    N_bulge = int(0.33000*N_disk)
-    N_gal = N_disk + N_bulge
+    fig=plt.figure()
     log = np.loadtxt('%s.txt'%(name))
     ax=fig.add_subplot(111)
     Ns=ax.plot(log[:,0], log[:,2], '-', c=colors[0], label='$N/N_t$', linewidth=3)
@@ -221,29 +222,28 @@ def infplot(name, N_gal, Li, r_colonizer, VC, dt_const):
 #    plt.legend(loc=6, frameon=False, fontsize=20)
 
     plt.title('R$_i$ = %.2f kpc'%(r_colonizer*1.e-3), fontsize=20)
-    plt.text(0.5, 0.5, s='$V_{probe} = %.2f c$\n $dt_{const} = %.1f$ $yr$\n'%(VC/cSpeed, dt_const/year), fontsize=22)
+#    plt.text(0.5, 0.5, s='$V_{probe} = %.2f c$\n $dt_{const} = %.1f$ $yr$\n'%(VC/cSpeed, dt_const/year), fontsize=22)
     plt.show()
     plt.savefig('/home/saas9842/Dropbox/SETI_report/Figs4/%s.png'%(name))
 
 def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
-    fig=plt.figure(figsize=(5, 5))
-    N_disk = 1e6
-    N_bulge = int(0.33000*N_disk)
-    N_gal = N_disk + N_bulge
+    fig=plt.figure()
     log = np.loadtxt('%s.txt'%(name))
     ax=fig.add_subplot(111)
-    Ns=ax.plot(log[:,0], log[:,2], '-', c=colors[0], label='$N/N_t$', linewidth=3)
-    Nl=ax.plot(log[:,0], log[:,1], '-', c=colors[1], label='$L/L_t$', linewidth=3)
-#    Ns=ax.scatter(log[:,0], log[:,2], marker='o', facecolors='none', edgecolors=colors[0], label='$N/N_t$', linewidth=2)
-#    Nl=ax.scatter(log[:,0], log[:,1], marker='o', facecolors='none', edgecolors=colors[1], label='$L/L_t$', linewidth=2)
+#    Ns=ax.plot(log[:,0], log[:,2], '-', c=colors[0], label='$N/N_t$', linewidth=3)
+#    Nl=ax.plot(log[:,0], log[:,1], '-', c=colors[1], label='$L/L_t$', linewidth=3)
+    Ns=ax.scatter(log[:,0], log[:,2], marker='o', facecolors='none', edgecolors=colors[0], label='$N/N_t$', linewidth=2)
+    Nl=ax.scatter(log[:,0], log[:,1], marker='o', facecolors='none', edgecolors=colors[1], label='$L/L_t$', linewidth=2)
     plt.xlim([-log[-1,0]/10.,log[-1,0]*1.1])
     plt.ylim([-0.05,1.05])
     plt.xlabel('t (Myr)', fontsize=20)
     #ylabel('$N/N_t$', fontsize=20)
 #    plt.legend(loc=6, frameon=False, fontsize=20)
 
-    plt.title('R$_i$ = %.2f pc'%(r_colonizer), fontsize=20)
-    plt.text(0.5, 0.5, s='$V_{probe} = %.2f c$\n $dt_{const} = %.1e$ $Myr$\n'%(VC/cSpeed, dt_const/Myr), fontsize=22)
+    plt.title('R$_i$ = %.2f kpc'%(r_colonizer*1.e-3), fontsize=20)
+#    plt.text(0.5, 0.5, s='$V_{probe} = %.2f c$\n $dt_{const} = %.1e$ $Myr$\n'%(VC/cSpeed, dt_const/Myr), fontsize=22)
+    plt.savefig('/home/saas9842/Dropbox/SETI_report/Figs4/%s_50.png'%(name))
+    figHIST=plt.figure()
+    axHIST=figHIST.add_subplot(111)
+    HIST=axHIST.hist(log[:,3])
     plt.show()
-    plt.savefig('/home/saas9842/Dropbox/SETI_report/Figs4/%s.png'%(name))
-

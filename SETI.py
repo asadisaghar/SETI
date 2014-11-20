@@ -18,19 +18,19 @@ cSpeed = 3.e5*km/sec  # pc/s
 # ===================== #
 #        HANDLES        #
 # ===================== #
-N_disk = int(1.e6)  # number of particles in disk (same order as N_gal)
-dt = np.logspace(-2, 1, num=1)*Myr  # galactic rotation time step
+N_disk = int(1.e4)  # number of particles in disk (same order as N_gal)
+dt = np.logspace(-3, 1, num=1)*Myr  # galactic rotation time step
 dt_const = np.logspace(-6, 1, num=1)*Myr  # construction time delay
-VC = np.logspace(-1, 0, num=1)*cSpeed  # probe velocity
-t_f = 1.e3*Myr  # time to stop
-SingleProbe = False
+VC = np.logspace(-0.5, 0, num=1)*cSpeed  # probe velocity
+t_f = 1.e4*Myr  # time to stop
+SingleProbe = True
 InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 8.e3  # radial distance from the galactic center in pc
+start_r = 8.e2  # radial distance from the galactic center in pc
 r_err = 10.
-name = 'sun_cf1_inf'
+name = 'bulge_cf1_single'
 # ===================== #
 #  Galactic parameters  #
 # ===================== #
@@ -141,28 +141,33 @@ def update():
     i = 0
     col_tot = 0.
     count_tot = 0.
-    logg = np.zeros(((int(t_f/dt)+1), 3))
-    while col_tot < N_gal or t<t_f:
+    while col_tot/N_gal < 0.50:
         t = i*dt
-        logg[i, 0] = t/Myr
     # Colonize the galaxy!
         dist = VC * (dt-dt_const)
         ## how about the case where dt_const is larger?
         if SingleProbe:
-            galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count, coveringFraction)
+            logg = np.zeros(((int(t_f/dt)+1), 4))
+            logg[i, 0] = t/Myr
+            galaxy[4,:], galaxy[5,:], colonized, count, ind_dmin = tools.col_single(galaxy, dist, count, coveringFraction)
+            col_tot += colonized
+            logg[i, 1] = np.sum(galaxy[4,:]/Li)
+            logg[i, 2] = np.sum(abs(galaxy[5,:])/N_gal)
+            logg[i, 3] = galaxy[0, ind_dmin]
+            logfile.write('%e\t%e\t%e\t%f\n' %(logg[i,0], logg[i,1], logg[i,2], logg[i,3]))
         elif InfiniteProbe:
+            logg = np.zeros(((int(t_f/dt)+1), 3))
+            logg[i, 0] = t/Myr
             ind = np.where(CS_gal==1)[0]
             galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count, ind)
-
-        col_tot += colonized
-        logg[i, 1] = np.sum(galaxy[4,:]/Li)
-        logg[i, 2] = np.sum(abs(galaxy[5,:])/N_gal)
+            col_tot += colonized
+            logg[i, 1] = np.sum(galaxy[4,:]/Li)
+            logg[i, 2] = np.sum(abs(galaxy[5,:])/N_gal)
+            logfile.write('%e\t%e\t%e\t%f\n' %(logg[i,0], logg[i,1], logg[i,2], logg[i,3]))
     # Rotate the galaxy!
         galaxy[1,0:N_disk] += galaxy[3,0:N_disk]*dt/galaxy[0,0:N_disk]
         galaxy[1,N_disk:-1] += galaxy[3,N_disk:-1]*dt/galaxy[0,N_disk:-1]
-        if t%(1.*Myr) == 0:
-            logfile.write('%e\t%e\t%e\n' %(logg[i,0], logg[i,1], logg[i,2]))
-            print '\tt = %.2f Myr\n-------%d = %.2f N_gal------'%(t/Myr, col_tot, col_tot/N_gal)
+        print '\tt = %.2f Myr\n-------%d = %.2f N_gal------'%(t/Myr, col_tot, col_tot/N_gal)
 
         i += 1
 
