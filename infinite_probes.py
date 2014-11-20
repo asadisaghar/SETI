@@ -23,14 +23,16 @@ fig=plt.figure()
 N_disk = 1e6
 N_bulge = int(0.33000*N_disk)
 N_gal = N_disk + N_bulge
-log = np.loadtxt('inf_4.txt')
+log = np.loadtxt('bulge_cf1_inf.txt')
 ax=fig.add_subplot(111)
+
 
 #Ns=ax.plot(log[:,0]/Myr, log[:,3]/(N_gal), c=colors[0], label='$N/N_t$', linewidth=3)
 #Nl=ax.plot(log[:,0]/Myr, 1. - log[:,3]/(N_gal), c=colors[1], label='$L/L_t$', linewidth=3)
 
-Ns=ax.scatter(log[:,0]/Myr, log[:,3]/(N_gal), marker='o', facecolors='none', edgecolors=colors[0], label='$N/N_t$', linewidth=3)
-Nl=ax.scatter(log[:,0]/Myr, 1. - log[:,3]/(N_gal), marker='o', facecolors='none', edgecolors=colors[1], label='$L/L_t$', linewidth=3)
+Ns=ax.scatter(log[:,0]/Myr, log[:,3]/N_gal, marker='o', facecolors='none', edgecolors=colors[0], label='$N/N_t$', linewidth=3)
+Nl=ax.scatter(log[:,0]/Myr, log[:,2]/Li, marker='o', facecolors='none', edgecolors=colors[1], label='$L/L_t$', linewidth=3)
+#Nl=ax.scatter(log[:,0]/Myr, 1. - log[:,3]/(N_gal), marker='o', facecolors='none', edgecolors=colors[1], label='$L/L_t$', linewidth=3)
 
 #Nl=ax.semilogy(log[:,0]/Myr, log[:,3]/(N_gal), '-m', label='$L/L_t$', linewidth=3)
 plt.xlim([-50,2100])
@@ -42,4 +44,4 @@ plt.legend(loc=6, frameon=False, fontsize=20)
 plt.title('Infinite probes\n', fontsize=20)
 plt.text(x=1055, y=0.365, s='$V_{probe} = 0.01 c$\n $dt_{const} = 1$ $yr$\n', fontsize=22)
 
-plt.savefig('/home/saas9842/Dropbox/SETI_report/Figs4/inf_6.png')
+plt.savefig('/home/saas9842/Dropbox/SETI_report/Figs4/bulge_cf1_inf.png')

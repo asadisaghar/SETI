@@ -32,7 +32,7 @@ ax=fig.add_subplot(111)
 
 #Ns=ax.scatter(log[:,0]/Myr, log[:,1]/N_gal, marker='o', facecolors='none', edgecolors=colors[3], label='$N/N_t$', linewidth=3)
 Ns=ax.scatter(log[:,0]/Myr, log[:,3]/N_gal, marker='o', facecolors='none', edgecolors=colors[0], label='$N/N_t$', linewidth=3)
-Nl=ax.scatter(log[:,0]/Myr, log[:,2]/10031071780634958.0, marker='o', facecolors='none', edgecolors=colors[1], label='$L/L_t$', linewidth=3)
+Nl=ax.scatter(log[:,0]/Myr, log[:,2]/Li, marker='o', facecolors='none', edgecolors=colors[1], label='$L/L_t$', linewidth=3)
 #Nl=ax.scatter(log[:,0]/Myr, 1. - log[:,3]/(N_gal), marker='o', facecolors='none', edgecolors=colors[1], label='$L/L_t$', linewidth=3)
 
 

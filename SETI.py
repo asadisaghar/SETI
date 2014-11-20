@@ -19,17 +19,18 @@ cSpeed = 3.e5*km/sec  # pc/s
 #        HANDLES        #
 # ===================== #
 N_disk = int(1.e6)  # number of particles in disk (same order as N_gal)
-dt = np.logspace(-1, 1, num=1)*Myr  # galactic rotation time step
+dt = np.logspace(-2, 1, num=1)*Myr  # galactic rotation time step
 dt_const = np.logspace(-6, 1, num=1)*Myr  # construction time delay
-VC = np.logspace(-2, 0, num=1)*cSpeed  # probe velocity
-t_f = 1.e2*Myr  # time to stop
+VC = np.logspace(-1, 0, num=1)*cSpeed  # probe velocity
+t_f = 1.e3*Myr  # time to stop
 SingleProbe = False
 InfiniteProbe = not(SingleProbe)
-coveringFraction = 1.
+coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 3.e2  # radial distance from the galactic center in pc
-r_err = 80.
+start_r = 8.e3  # radial distance from the galactic center in pc
+r_err = 10.
+name = 'sun_cf1_inf'
 # ===================== #
 #  Galactic parameters  #
 # ===================== #
@@ -45,7 +46,9 @@ n_s_disk = 1  # disk Sersic index
 M_disk = 6.e10  # disk mass
 
 # BULGE
-N_bulge = int(0.33000*N_disk)
+#N_bulge = int(0.33000*N_disk)
+## Maybe this is too small after all...
+N_bulge = N_disk
 R_bulge = 2.7e3  # bulge radius
 I_0_bulge = 5.e9  # bulge central intensity
 alpha_bulge = R_bulge/3.  # bulge scale length
@@ -125,23 +128,27 @@ galaxy[4,:] = I_gal
 if RandomStart:
     CS_gal = tools.CS_random(N_gal)
 else:
-    CS_gal = tools.CS_manual(N_gal, galaxy, start_r, r_err)
+    CS_gal, r_colonizer = tools.CS_manual(N_gal, galaxy, start_r, r_err)
 galaxy[5,:] = CS_gal
 
 def update():
     global t
-    logfile = open('logfile.txt', 'w')
+    logfile = open('%s.txt'%(name), 'w')
+# ============== #
 #    UPDATING    #
 # ============== #
     count = 1
+    i = 0
     col_tot = 0.
     count_tot = 0.
-    logg = np.zeros(((int(t_f/dt)+1), 4))
-    for i in xrange(int(t_f/dt)+1):
+    logg = np.zeros(((int(t_f/dt)+1), 3))
+    while col_tot < N_gal:
+#    for i in xrange(int(t_f/dt)+1):
         t = i*dt
-        logg[i, 0] = t
+        logg[i, 0] = t/Myr
     # Colonize the galaxy!
         dist = VC * (dt-dt_const)
+        ## how about the case where dt_const is larger?
         if SingleProbe:
             galaxy[4,:], galaxy[5,:], colonized, count = tools.col_single(galaxy, dist, count, coveringFraction)
         elif InfiniteProbe:
@@ -149,19 +156,26 @@ def update():
             galaxy[4,:], galaxy[5,:], colonized, count = tools.col_inf(galaxy, dist, count, ind)
 
         col_tot += colonized
-        count_tot += count
-        logg[i, 1] = col_tot
-        logg[i, 2] = np.sum(galaxy[4,:])
-        logg[i, 3] = np.sum(abs(galaxy[5,:]))+2
+        logg[i, 1] = np.sum(galaxy[4,:]/Li)
+        logg[i, 2] = np.sum(abs(galaxy[5,:])/N_gal)
     # Rotate the galaxy!
         galaxy[1,0:N_disk] += galaxy[3,0:N_disk]*dt/galaxy[0,0:N_disk]
         galaxy[1,N_disk:-1] += galaxy[3,N_disk:-1]*dt/galaxy[0,N_disk:-1]
-        if t%Myr == 0:
-            logfile.write('%e\t%e\t%e\t%e\n' %(logg[i,0], logg[i,1], logg[i,2], logg[i,3]))
-            print 't = %.2f Myr\n-------------'%(t/Myr)
+        if t%(1.*Myr) == 0:
+            logfile.write('%e\t%e\t%e\n' %(logg[i,0], logg[i,1], logg[i,2]))
+            print '\tt = %.2f Myr\n-------%d = %.2f N_gal------'%(t/Myr, col_tot, col_tot/N_gal)
 
         i += 1
 
     logfile.close()
 
 cProfile.run("update()", "stats")
+
+# ==================== #
+#        PLOTTING      #
+# ==================== #
+if SingleProbe:
+    tools.singleplot(name, N_gal, Li, r_colonizer, VC, dt_const)
+elif InfiniteProbe:
+    tools.infplot(name, N_gal, Li, r_colonizer, VC, dt_const)
+
