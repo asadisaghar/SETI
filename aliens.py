@@ -3,7 +3,7 @@ import numpy as np
 import random
 import colgal.parameters as pars
 
-class Aliene(object):
+class Aliens(object):
     def __init__(self, strategy):
         self.stategy=strategy
 
