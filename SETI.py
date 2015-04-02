@@ -1,6 +1,10 @@
 #FIXME
+# The colonizer seems to avoid the bulge when it doesn't begin in the bulge
+# The conolized fraction looks more significant than what the number says
+# in infinit probe, why is the colonized region NOT spherical??
+# color limits for maps
 # initialize the galaxy
-# let the gal rotate for a Myr or so, dump the whole galaxy array into a file to plot
+# let the gal rotate for a Myr or so, dump the whole galaxy array into a file to plot (Doesn't make a difference!)
 # turn on the colonization and at each [few] time step[s] dump the location of colonized/colonizer(s) into a txt file
 # overplot the colonization patter for whatever time step you want from the dumped measurements 
 
@@ -30,7 +34,7 @@ Gconst = Gconst*meter**3/(kg*sec**2)
 # ===================== #
 #        HANDLES        #
 # ===================== #
-N_disk = int(1.e6)  # number of particles in disk (same order as N_gal)
+N_disk = int(1.e5)  # number of particles in disk (same order as N_gal)
 dt = np.logspace(-2, 1, num=1)*Myr  # galactic rotation time step
 dt_const = np.logspace(-6, 1, num=1)*Myr  # construction time delay
 VC = np.logspace(-1, 0, num=1)*cSpeed  # probe velocity
@@ -41,7 +45,7 @@ InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 1.5e3  # radial distance from the galactic center in pc
+start_r = 5e3  # radial distance from the galactic center in pc
 r_err = 100.
 name = 'bulge_cf1_single'
 # ===================== #
@@ -71,7 +75,8 @@ R_bulge = 2.7e3  # bulge radius
 I_0_bulge = 5.e9  # bulge central intensity
 alpha_bulge = R_bulge/3.  # bulge scale length
 n_s_bulge = 5  # Bulge Sersic index(in range: 1.5-10)
-M_bulge = 2.e10  # bulge mass
+M_bulge = 9.3e6  # bulge mass #FIXME
+#M_bulge = 2.e10  # bulge mass
 mean_bulge = 200.*km/sec # (My arbitrary value!!) #FIXME value
 sigma_bulge = 130.*km/sec # Velocity dispercion
 
@@ -140,8 +145,9 @@ Vz_disk = np.random.normal(mean_z_disk, 2.*sigma_z_disk, N_disk)
 # VEL:Bulge (Gaussian dist. with given mean and dispersion)
 Vrho_bulge = np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
 Vphi_bulge = np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
-omega_bulge = np.sqrt(Gconst*M_bulge/(R_bulge)**3)  # [1/s]
-Vphi_bulge = r_bulge*km*omega_bulge  # [km/s] 
+#FIXME
+#omega_bulge = np.sqrt(Gconst*M_bulge/(R_bulge)**3)  # [1/s]
+#Vphi_bulge = r_bulge*km*omega_bulge  # [km/s] 
 Vz_bulge = np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
 
 # VEL:Halo (Gaussian dist. with given mean and dispersion)
@@ -203,11 +209,10 @@ galaxy[7] = Vz_gal
 x_gal=rho_gal*np.cos(phi_gal)
 y_gal=rho_gal*np.sin(phi_gal)
 print "Initial"
-tools.plot_cont_galaxy(t, x_gal, y_gal, z_gal, I_gal)
-
+tools.plot_cont_galaxy(t, x_gal, y_gal, z_gal, I_gal, start_r, I_gal)
 def update():
     global t
-    logfile = open('%s.txt'%(name), 'w')
+#    logfile = open('%s.txt'%(name), 'w')
 # ============== #
 #    UPDATING    #
 # ============== #
@@ -215,10 +220,10 @@ def update():
     i = 0
     col_tot = 0.
     count_tot = 0.
-
-    while col_tot/N_gal < 0.45:
+    while col_tot/N_gal < 0.25:
         t = i*dt
-    # Colonize the galaxy!
+#        print '\tt = %.2f Myr\n-------%d = %.2f N_gal------'%(t/Myr, col_tot, col_tot/N_gal)
+        # Colonize the galaxy!
         dist = VC * (dt-dt_const)
         ## how about the case where dt_const is larger?
         if SingleProbe:
@@ -229,7 +234,7 @@ def update():
             report[i, 1] = np.sum(galaxy[4,:]/Li)
             report[i, 2] = np.sum(abs(galaxy[5,:])/N_gal)
             report[i, 3] = galaxy[0, ind_dmin]
-            logfile.write('%e\t%e\t%e\t%f\n' %(report[i,0], report[i,1], report[i,2], report[i,3]))
+#            logfile.write('%e\t%e\t%e\t%f\n' %(report[i,0], report[i,1], report[i,2], report[i,3]))
         elif InfiniteProbe:
             report = np.zeros(((int(t_f/dt)+1), 4))
             report[i, 0] = t/Myr
@@ -238,25 +243,33 @@ def update():
             col_tot += colonized
             report[i, 1] = np.sum(galaxy[4,:]/Li)
             report[i, 2] = np.sum(abs(galaxy[5,:])/N_gal)
-            logfile.write('%e\t%e\t%e\t%f\n' %(report[i,0], report[i,1], report[i,2], report[i,3]))
-    # Rotate the galaxy!
-        galaxy[0] += galaxy[6]*dt
-        galaxy[1] += galaxy[3]*dt/galaxy[0,:]
-        galaxy[2] += galaxy[7]*dt
+#            logfile.write('%e\t%e\t%e\t%f\n' %(report[i,0], report[i,1], report[i,2], report[i,3]))
 
-        print '\tt = %.2f Myr\n-------%d = %.2f N_gal------'%(t/Myr, col_tot, col_tot/N_gal)
-        if i==500:
+        if i==20 or i==100 or i==200 or i==1000:
             galaxy_cart = np.zeros((3,(N_bulge+N_disk+N_halo)))
             galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
             galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
             galaxy_cart[2]=galaxy[2]
             print "step%d"%(i)
-            tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[4])
+            tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[4], start_r, I_gal, col_tot/N_gal)
+    
+    # Rotate the galaxy!
+        sign=np.random.random_integers(0,2,N_gal)-2/2.
+        galaxy[0] += sign*galaxy[6]*dt
+        galaxy[1] += galaxy[3]*dt/galaxy[0,:]
+        sign=np.random.random_integers(0,2,N_gal)-2/2.
+        galaxy[2] += sign*galaxy[7]*dt
 
         i += 1
 #galaxy_inds = {"rho": 0, "phi": 1, "z", 2, "Vphi": 3, "I": 4, "CS": 5, "Vrho": 6, "Vz": 7}
 
-    logfile.close()
+#    logfile.close()
+    galaxy_cart = np.zeros((3,(N_bulge+N_disk+N_halo)))
+    galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
+    galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
+    galaxy_cart[2]=galaxy[2]
+    print "Final"
+    tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[4], start_r, I_gal, col_tot/N_gal)
 
 cProfile.run("update()", "stats")
 
@@ -267,10 +280,4 @@ cProfile.run("update()", "stats")
 #    tools.singleplot(name, N_gal, Li, r_colonizer, VC, dt_const)
 #elif InfiniteProbe:
 #    tools.infplot(name, N_gal, Li, r_colonizer, VC, dt_const)
-galaxy_cart = np.zeros((3,(N_bulge+N_disk+N_halo)))
-galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
-galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
-galaxy_cart[2]=galaxy[2]
-print "Final"
-tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[4])
 #tools.plot_cont_galaxy(galaxy_cart)

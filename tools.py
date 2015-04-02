@@ -126,7 +126,7 @@ def CS_random(N_gal):
     return CS
 
 # Spherical colonization, infinite probes
-# As each step, the *closest* site within the sphere of r=dist is colonized
+# As each step, all site within the sphere of r=dist is colonized
 def col_inf(galaxy, dist, count, ind):
     dist *= count
     col_dist = 0
@@ -145,6 +145,8 @@ def col_inf(galaxy, dist, count, ind):
                              (abs(galaxy[2,:]-z_col)<=dist) &
                              (galaxy[5,:]==0))
     N_reachable = np.size(reachable[0])
+    print "dist=%.1f\t, %d potential targets"%(dist, N_reachable)
+    print "\n*****\n"
     if N_reachable>0:
         while col_dist < dist/2.:
             galaxy[5, ind] = -1.
@@ -275,7 +277,7 @@ def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
     HIST=axHIST.hist(log[:,3])
 #    plt.show()
 
-def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont):
+def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0):
     print np.min(x_gal), np.max(x_gal)
     print np.min(y_gal), np.max(y_gal)
     print np.min(z_gal), np.max(z_gal)
@@ -284,10 +286,10 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont):
     from astroML.stats import binned_statistic_2d
     fig = plt.figure(figsize=(20, 10))
     # Face-on
-    ax = plt.subplot(121)
+    axfo = plt.subplot(121)
     cmap = plt.cm.jet
     cmap.set_bad('w', 1.)
-    N, xedges, yedges=binned_statistic_2d(x_gal, y_gal, cont, 'sum', bins=1000)
+    N, xedges, yedges=binned_statistic_2d(x_gal, y_gal, cont, 'mean', bins=1000)
     plt.imshow(np.log10(N.T), origin='lower',
                extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
                aspect='equal', interpolation='nearest', cmap=cmap)
@@ -298,12 +300,13 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont):
     cb = plt.colorbar(pad=0.2,
                       orientation='horizontal')
     cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-    plt.clim(0, np.max(np.log10(N.T)))
+#    plt.clim(0,13)
+#    plt.clim(0, np.max(np.log10(N.T)))
     # Edge-on
-    ax = plt.subplot(122)
+    axeo = plt.subplot(122)
     cmap = plt.cm.jet
     cmap.set_bad('w', 1.)
-    N, xedges, zedges=binned_statistic_2d(x_gal, z_gal, cont, 'sum', bins=1000)
+    N, xedges, zedges=binned_statistic_2d(x_gal, z_gal, cont, 'count', bins=1000)
     plt.imshow(np.log10(N.T), origin='lower',
                extent=[xedges[0], xedges[-1], zedges[0], zedges[-1]],
                aspect='equal', interpolation='nearest', cmap=cmap)
@@ -314,6 +317,9 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont):
     cb = plt.colorbar(pad=0.2,
                       orientation='horizontal')
     cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-#    plt.clim(0, 3)
-    plt.suptitle('time = %.2f Myr'%(t/Myr))
-    plt.clim(0, np.max(np.log10(N.T)))
+    plt.clim(0, np.log10(np.max(I_gal)))
+    plt.suptitle('time = %.2f Myr\t R$_0$ = %d pc\t Colonized fraction = %.1f'%(t/Myr, R0, col_frac))
+#    plt.clim(0,13)
+#    plt.clim(0, np.max(np.log10(N.T)))
+    plt.show()
+    return axfo, axeo
