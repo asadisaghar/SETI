@@ -17,12 +17,16 @@ RS = 123124
 pc = 1.
 sec = 1.
 M_solar = 1.
+
+meter = 1.e-3 #km
 km = 1./3.086e13  # pc
 year = 3.154e7*sec  # s
 Myr = 1.e6*year  # s
 kg = 1./1.1988435e30  # M_solar
 cSpeed = 3.e5*km/sec  # pc/s
 colors = ['#d7191c', '#fdae61', '#abd9e9','#2c7bb6']
+Gconst = 6.67e-11 #N.m^2.kg^-2 = kg^1.m^1.s^-2.m^2.kg^-2 = kg^-1.m^3.s^-2 
+Gconst = Gconst*meter**3/(kg*sec**2)
 # ===================== #
 # Initialization (Uniform or Exponential), no signs. rho, and phi of the disk, and all three(r, phi, theta) of the bulge
 def init_pos(N, low, high_scale, dist):
@@ -289,12 +293,12 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont):
                aspect='equal', interpolation='nearest', cmap=cmap)
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Y (pc)')
-    plt.xlim([-1e4, 1e4])
-    plt.ylim([-1e4, 1e4])
+    plt.xlim([-5e4, 5e4])
+    plt.ylim([-5e4, 5e4])
     cb = plt.colorbar(pad=0.2,
                       orientation='horizontal')
-    cb.set_label(r'$\mathrm{Normalized\ luminosity}$')
-    plt.clim(0, 3)
+    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
+    plt.clim(0, np.max(np.log10(N.T)))
     # Edge-on
     ax = plt.subplot(122)
     cmap = plt.cm.jet
@@ -309,7 +313,7 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont):
     plt.ylim([-1e4, 1e4])
     cb = plt.colorbar(pad=0.2,
                       orientation='horizontal')
-    cb.set_label(r'$\mathrm{Normalized\ luminosity}$')
+    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
 #    plt.clim(0, 3)
     plt.suptitle('time = %.2f Myr'%(t/Myr))
-
+    plt.clim(0, np.max(np.log10(N.T)))

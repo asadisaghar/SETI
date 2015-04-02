@@ -19,15 +19,18 @@ pc = 1.
 sec = 1.
 M_solar = 1.
 
+meter = 1./3.086e16 #km
 km = 1./3.086e13  # pc
 year = 3.154e7*sec  # s
 Myr = 1.e6*year  # s
 kg = 1./1.1988435e30  # M_solar
 cSpeed = 3.e5*km/sec  # pc/s
+Gconst = 6.67e-11 #N.m^2.kg^-2 = kg^1.m^1.s^-2.m^2.kg^-2 = kg^-1.m^3.s^-2 
+Gconst = Gconst*meter**3/(kg*sec**2)
 # ===================== #
 #        HANDLES        #
 # ===================== #
-N_disk = int(1.e5)  # number of particles in disk (same order as N_gal)
+N_disk = int(1.e6)  # number of particles in disk (same order as N_gal)
 dt = np.logspace(-2, 1, num=1)*Myr  # galactic rotation time step
 dt_const = np.logspace(-6, 1, num=1)*Myr  # construction time delay
 VC = np.logspace(-1, 0, num=1)*cSpeed  # probe velocity
@@ -38,8 +41,8 @@ InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 8.e2  # radial distance from the galactic center in pc
-r_err = 10.
+start_r = 1.5e3  # radial distance from the galactic center in pc
+r_err = 100.
 name = 'bulge_cf1_single'
 # ===================== #
 #  Galactic parameters  #
@@ -54,6 +57,11 @@ I_0_disk = 20.e9  # disk central intensity
 alpha_disk = h_rho_disk  # disk scale length (pc)
 n_s_disk = 1  # disk Sersic index
 M_disk = 6.e10  # disk mass
+#FIXME values
+mean_rho_disk = 200.*km/sec
+sigma_rho_disk = 130.*km/sec
+mean_z_disk = 20.*km/sec
+sigma_z_disk = 13.*km/sec
 
 # BULGE
 #N_bulge = int(0.33000*N_disk)
@@ -63,11 +71,11 @@ R_bulge = 2.7e3  # bulge radius
 I_0_bulge = 5.e9  # bulge central intensity
 alpha_bulge = R_bulge/3.  # bulge scale length
 n_s_bulge = 5  # Bulge Sersic index(in range: 1.5-10)
-mean_bulge = 200.*km/sec # (My arbitrary value!!)
-sigma_bulge = 130.*km/sec # Velocity dispercion
 M_bulge = 2.e10  # bulge mass
+mean_bulge = 200.*km/sec # (My arbitrary value!!) #FIXME value
+sigma_bulge = 130.*km/sec # Velocity dispercion
 
-# Halo #FIXME
+# Halo (NOT included!)
 N_halo = 0
 R_halo = 1.e8
 I_0_halo = 5.e6  # bulge central intensity
@@ -125,20 +133,18 @@ z_halo = r_halo*np.cos(phi_halo)
 phi_halo = theta_halo
 
 # VEL:Disk (Rotation curve analytic relation)
-Vrho_disk = np.random.normal(mean_bulge, 2.*sigma_bulge, N_disk)
+Vrho_disk = np.random.normal(mean_rho_disk, 2.*sigma_rho_disk, N_disk)
 Vphi_disk = tools.v_rotational(rho_disk, V_opt, R_opt, L2Lstar)
-Vz_disk = np.random.normal(mean_bulge, 2.*sigma_bulge, N_disk)
+Vz_disk = np.random.normal(mean_z_disk, 2.*sigma_z_disk, N_disk)
 
 # VEL:Bulge (Gaussian dist. with given mean and dispersion)
-#FIXME
 Vrho_bulge = np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
 Vphi_bulge = np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
+omega_bulge = np.sqrt(Gconst*M_bulge/(R_bulge)**3)  # [1/s]
+Vphi_bulge = r_bulge*km*omega_bulge  # [km/s] 
 Vz_bulge = np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
-#Vrho_bulge = tools.init_norm(mean_bulge, sigma_bulge, N_bulge)
-#Vphi_bulge = tools.init_norm(mean_bulge, sigma_bulge, N_bulge)
-#Vz_bulge = tools.init_norm(mean_bulge, sigma_bulge, N_bulge)
 
-# VEL:Bulge (Gaussian dist. with given mean and dispersion)
+# VEL:Halo (Gaussian dist. with given mean and dispersion)
 Vrho_halo = tools.init_norm(mean_halo, sigma_halo, N_halo)
 Vphi_halo = tools.init_norm(mean_halo, sigma_halo, N_halo)
 Vz_halo = tools.init_norm(mean_halo, sigma_halo, N_halo)
@@ -168,6 +174,7 @@ Vphi_gal = np.append(Vphi_gal, Vphi_halo)
 Vz_gal = np.append(Vz_disk, Vz_bulge)
 Vz_gal = np.append(Vz_gal, Vz_halo)
 
+#FIXME WTF??
 # This is just to keep the galaxy array consistent, NOT for SB measurement
 I_gal = np.append(I_disk, I_bulge)
 I_gal = np.append(I_gal, I_halo)
@@ -209,7 +216,7 @@ def update():
     col_tot = 0.
     count_tot = 0.
 
-    while col_tot/N_gal < 0.90:
+    while col_tot/N_gal < 0.45:
         t = i*dt
     # Colonize the galaxy!
         dist = VC * (dt-dt_const)
@@ -238,7 +245,7 @@ def update():
         galaxy[2] += galaxy[7]*dt
 
         print '\tt = %.2f Myr\n-------%d = %.2f N_gal------'%(t/Myr, col_tot, col_tot/N_gal)
-        if i==100:
+        if i==500:
             galaxy_cart = np.zeros((3,(N_bulge+N_disk+N_halo)))
             galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
             galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
