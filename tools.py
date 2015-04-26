@@ -107,7 +107,7 @@ def CS_manual(N_gal, galaxy, start_r, r_err):
     random.seed(121323)
     while True:
         try:
-            colonizer = np.where((abs(galaxy[0,:]-start_r)<=r_err))[0]
+            colonizer = np.where((abs(galaxy[0]-start_r)<=r_err))[0]
             N_potential = np.size(colonizer)
             RNDind = np.random.random_integers(0, N_potential-1)
             CS[colonizer[RNDind]] = 1
@@ -127,61 +127,100 @@ def CS_random(N_gal):
 
 # Spherical colonization, infinite probes
 # As each step, all site within the sphere of r=dist is colonized
-def col_inf(galaxy, dist, count, ind):
+def col_inf(galaxy, galaxy_cart, dist, count, ind, coveringFraction):
     dist *= count
     col_dist = 0
     colonized = 0
     r_col = galaxy[0,ind]
     phi_col = galaxy[1,ind]
     z_col = galaxy[2,ind]
+    x_col = r_col*cos(phi_col)
+    y_col = r_col*sin(phi_col)
     if dist<=r_col:
         dphi = np.arcsin(dist/r_col)
-        reachable = np.where((abs(galaxy[0,:]-r_col)<=dist) &
-                             (abs(galaxy[1,:]-phi_col)<=dphi) &
-                             (abs(galaxy[2,:]-z_col)<=dist) &
-                             (galaxy[5,:]==0))
+        reachable = np.where((abs(galaxy[0]-r_col)<=dist) &
+                             (abs(galaxy[1]-phi_col)<=dphi) &
+                             (abs(galaxy[2]-z_col)<=dist) &
+                             (galaxy[5]==0))
     else:
-        reachable = np.where((galaxy[0,:]<=dist) &
+        reachable = np.where((galaxy[0]<=dist) &
                              (abs(galaxy[2,:]-z_col)<=dist) &
-                             (galaxy[5,:]==0))
+                             (galaxy[5]==0))
     N_reachable = np.size(reachable[0])
-    print "dist=%.1f\t, %d potential targets"%(dist, N_reachable)
-    print "\n*****\n"
     if N_reachable>0:
-        while col_dist < dist/2.:
-            galaxy[5, ind] = -1.
-            galaxy[5, reachable] = 1.
-            galaxy[4, reachable] = 0.
-            colonized += N_reachable
-            col_dist += dist
+        ##inside update_colonization##
+        d2 = np.power(galaxy_cart[0,reachable]-x_col,2)
+        d2 += np.power(galaxy_cart[1,reachable]-y_col,2)
+        d2 += np.power(galaxy[2,reachable]-z_col,2)
+        distance_radius = np.sqrt(d2)
+#        print dist, distance_radius
+        galaxy[5,ind] = -1
+        to_colonize = np.where(distance_radius<=dist)[1]
+        galaxy[5,to_colonize] = 1
+        galaxy[4,to_colonize] *= (1. - coveringFraction)
 
+        colonized += len(to_colonize)
+#        print "%d new sites are captured!"%(colonized)
+        count = 1
     else:
+#        print "No potential sites! Try again in the next time step!!"
         count +=1
 
-    return galaxy[4,:], galaxy[5,:], colonized, count
+    # if N_reachable>0:
+    #     while col_dist < dist/2.:
+    #         galaxy[5, ind] = -1.
+    #         galaxy[5, reachable] = 1.
+    #         galaxy[4, reachable] = 0.
+    #         colonized += N_reachable
+    #         col_dist += dist
 
-# Particle-toparticle colonization, single probe
+    # else:
+    #     count +=1
+
+    return galaxy[4], galaxy[5], colonized, count
+
+# Particle-to-particle colonization, single probe
 # As each step, the *closest* site within the sphere of r=dist is colonized,
 # ONLY by the sites which are colonized during the FIRST previous step
-def col_single(galaxy, dist, count, coveringFraction):
+def col_single(galaxy, galaxy_cart, dist, count, coveringFraction):
     dist *= count
+    print "Our current reachable diatance: %.2f pc"%(dist)
     col_dist = 0
     colonized = 0
     ind_dmin = 0
     ind, reachable = calculate_reachable(galaxy, dist, ind=0)
     N_reachable = np.size(reachable[0])
     if N_reachable>0:
-        while col_dist < dist/2.:
-            galaxy, dmin , ind_dmin = update_colonization(galaxy, dist, ind,
-                                               reachable, coveringFraction)
-            
-            colonized += 1
-            col_dist += dmin
-            count = 1
+        print "%d potential sites!"%(N_reachable)
+        print "Searching for the closest site..."
+        ##inside update_colonization##
+        r_col = galaxy[0,ind]
+        phi_col = galaxy[1,ind]
+        z_col = galaxy[2,ind]
+        x_col = r_col*cos(phi_col)
+        y_col = r_col*sin(phi_col)
+        d2 = np.power(galaxy_cart[0,reachable]-x_col,2)
+        d2 += np.power(galaxy_cart[1,reachable]-y_col,2)
+        d2 += np.power(galaxy[2,reachable]-z_col,2)
+        d2min = d2[d2 !=0].min()
+        dmin = np.sqrt(d2min) 
+        ind_dmin = np.where(d2==d2min)[1]
+        print "site no. %d will soon be ours!"%(ind_dmin)
+        galaxy[5,ind] = -1.
+        galaxy[5,ind_dmin] = 1.
+        galaxy[4,ind_dmin] *= (1. - coveringFraction)
+##
+#            galaxy, dmin , ind_dmin = update_colonization(galaxy, dist, ind,
+#                                               reachable, coveringFraction)
+        colonized += 1
+        col_dist += dmin
+#        print "We have gone so far: %.2f pc"%(col_dist)
+        count = 1
     else:
+#        print "No potential sites! Try again in the next time step!!"
         count +=1
 
-    return galaxy[4,:], galaxy[5,:], colonized, count, ind_dmin
+    return galaxy[4], galaxy[5], colonized, count, ind_dmin
 
 
 def calculate_reachable(galaxy, dist, ind):
@@ -192,46 +231,15 @@ def calculate_reachable(galaxy, dist, ind):
     # mark the reachable space, i.e. dr = dist, dz = dist, dph = arcsin(dist/r_col)
     if dist<=r_col:
         dphi = np.arcsin(dist/r_col)
-        reachable = np.where((abs(galaxy[0,:]-r_col)<=dist) &
-                             (abs(galaxy[1,:]-phi_col)<=dphi) &
-                             (abs(galaxy[2,:]-z_col)<=dist) &
-                             (galaxy[5,:]==0))
+        reachable = np.where((abs(galaxy[0]-r_col)<=dist) &
+                             (abs(galaxy[1]-phi_col)<=dphi) &
+                             (abs(galaxy[2]-z_col)<=dist) &
+                             (galaxy[5]==0))
     else:
-        reachable = np.where((galaxy[0,:]<=dist) &
-                             (abs(galaxy[2,:]-z_col)<=dist) &
-                             (galaxy[5,:]==0))
+        reachable = np.where((galaxy[0]<=dist) &
+                             (abs(galaxy[2]-z_col)<=dist) &
+                             (galaxy[5]==0))
     return ind, reachable
-
-def update_colonization(galaxy, dist, ind, reachable, coveringFraction):
-        r_col = galaxy[0,ind]
-        phi_col = galaxy[1,ind]
-        z_col = galaxy[2,ind]
-        x_col = r_col*cos(phi_col)
-        y_col = r_col*sin(phi_col)
-        galaxy_cart2 = np.zeros((2, np.size(galaxy)))
-        galaxy_cart2[0,reachable] = galaxy[0,reachable]*np.cos(galaxy[1,reachable])
-        galaxy_cart2[1,reachable] = galaxy[0,reachable]*np.sin(galaxy[1,reachable])
-        d2 = np.zeros((1, np.size(galaxy)))
-        d2[0,reachable] = np.power(galaxy_cart2[0,reachable]-x_col,2)
-        d2[0,reachable] += np.power(galaxy_cart2[1,reachable]-y_col,2)
-        d2[0,reachable] += np.power(galaxy[2,reachable]-z_col,2)
-        d2min = d2[d2 !=0].min()
-        # Add try!!
-#        while True:
-#            try:
-#                d2min = d2[d2 !=0].min()
-#                dmin = np.sqrt(d2min) 
-#                break
-#            except ValueError:
-#                print 'No particle found! Try a larger value for r_err = %f!'%(r_err)
-#                r_err = float(raw_input('Enter flexibility in r in pc! '))
-
-        dmin = np.sqrt(d2min) 
-        ind_dmin = np.where(d2==d2min)[1]
-        galaxy[5,ind] = -1.
-        galaxy[5,ind_dmin] = 1.
-        galaxy[4,ind_dmin] *= (1. - coveringFraction) 
-        return galaxy, dmin, ind_dmin
 
 # ==================== #
 #        PLOTTING      #
@@ -277,7 +285,8 @@ def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
     HIST=axHIST.hist(log[:,3])
 #    plt.show()
 
-def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0):
+def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0, bin_no=100):
+    print "X_gal, Y_gal, Z_gal range"
     print np.min(x_gal), np.max(x_gal)
     print np.min(y_gal), np.max(y_gal)
     print np.min(z_gal), np.max(z_gal)
@@ -289,8 +298,8 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0):
     axfo = plt.subplot(121)
     cmap = plt.cm.jet
     cmap.set_bad('w', 1.)
-    N, xedges, yedges=binned_statistic_2d(x_gal, y_gal, cont, 'mean', bins=1000)
-    plt.imshow(np.log10(N.T), origin='lower',
+    N, xedges, yedges = binned_statistic_2d(x_gal, y_gal, cont, 'mean', bins=bin_no)
+    plt.imshow((N.T), origin='lower',
                extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
                aspect='equal', interpolation='nearest', cmap=cmap)
     plt.xlabel(r'X (pc)')
@@ -306,10 +315,15 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0):
     axeo = plt.subplot(122)
     cmap = plt.cm.jet
     cmap.set_bad('w', 1.)
-    N, xedges, zedges=binned_statistic_2d(x_gal, z_gal, cont, 'count', bins=1000)
+    N, xedges, zedges=binned_statistic_2d(x_gal, z_gal, I_gal, 'mean', bins=bin_no)
     plt.imshow(np.log10(N.T), origin='lower',
                extent=[xedges[0], xedges[-1], zedges[0], zedges[-1]],
                aspect='equal', interpolation='nearest', cmap=cmap)
+
+    print "I_gal range"
+    print np.min(I_gal)
+    print np.max(I_gal)
+
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Z (pc)')
     plt.xlim([-1e4, 1e4])
@@ -319,7 +333,7 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0):
     cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
     plt.clim(0, np.log10(np.max(I_gal)))
     plt.suptitle('time = %.2f Myr\t R$_0$ = %d pc\t Colonized fraction = %.1f'%(t/Myr, R0, col_frac))
-#    plt.clim(0,13)
+    plt.clim(5,10)
 #    plt.clim(0, np.max(np.log10(N.T)))
     plt.show()
     return axfo, axeo
