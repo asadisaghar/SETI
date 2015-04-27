@@ -52,16 +52,16 @@ alpha_disk = h_rho_disk  # disk scale length (pc)
 n_s_disk = 1  # disk Sersic index
 M_disk = 6.e10  # disk mass
 #FIXME values
-mean_rho_disk = 20.*km/sec
-sigma_rho_disk = 13.*km/sec
-mean_z_disk = 5.*km/sec
+mean_rho_disk = 50.*km/sec
+sigma_rho_disk = 40.*km/sec
+mean_z_disk = 10.*km/sec
 sigma_z_disk = 3.*km/sec
 
 # BULGE
 #N_bulge = int(0.33000*N_disk)
 ## Maybe this is too small after all...
-#N_bulge = int(0.01*N_disk)
-N_bulge = 0
+N_bulge = int(0.01*N_disk)
+#N_bulge = 0
 R_bulge = 2.7e3  # bulge radius
 I_0_bulge = 5.e9  # bulge central intensity
 alpha_bulge = R_bulge/3.  # bulge scale length
@@ -110,16 +110,13 @@ z_disk = np.append(z_thin, z_thick)
 
 # POS:Bulge (Spherical)
 r_bulge = tools.init_pos(N_bulge, 0., R_bulge, 'uni')  #galaxy[0]
-rho_bulge = r_bulge
-phi_bulge = tools.init_pos(N_bulge, 0., pi, 'uni')  #galaxy[1]
-
+phi_bulge_sph = tools.init_pos(N_bulge, 0., pi, 'uni')  #galaxy[1]
 theta_bulge = tools.init_pos(N_bulge, 0., 2.*pi, 'uni')  #galaxy[2]
-z_bulge = theta_bulge
 
 # POS:Bulge (Cylindrical)
-#rho_bulge = r_bulge*np.sin(phi_bulge)
-#z_bulge = r_bulge*np.cos(phi_bulge)
-#phi_bulge = theta_bulge
+rho_bulge = r_bulge*np.sin(phi_bulge_sph)
+z_bulge = r_bulge*np.cos(phi_bulge_sph)
+phi_bulge = theta_bulge
 
 # POS:Halo (Spherical)
 r_halo = tools.init_pos(N_halo, 0., R_halo, 'uni') #galaxy[0]
@@ -132,10 +129,8 @@ z_halo = r_halo*np.cos(phi_halo)
 phi_halo = theta_halo
 
 # VEL:Disk (Rotation curve analytic relation)
-#Vrho_disk = np.random.normal(mean_rho_disk, 2.*sigma_rho_disk, N_disk)
 Vrho_disk = np.zeros(N_disk)
 Vphi_disk = tools.v_rotational(rho_disk, V_opt, R_opt, L2Lstar)
-#Vz_disk = np.random.normal(mean_z_disk, 2.*sigma_z_disk, N_disk)
 Vz_disk = np.zeros(N_disk)
 
 # VEL:Bulge (Gaussian dist. with given mean and dispersion)
@@ -167,21 +162,21 @@ lgI_I0 = np.power(rho_halo, 0.25)
 I_halo = I_0_halo*np.exp(-lgI_I0)
 
 # POS:Galaxy
-rho_gal = np.append(rho_disk, rho_bulge)
+rho_gal = np.append(rho_bulge, rho_disk)
 rho_gal = np.append(rho_gal, rho_halo)
-phi_gal = np.append(phi_disk, phi_bulge)
+phi_gal = np.append(phi_bulge, rho_disk)
 phi_gal = np.append(phi_gal, phi_halo)
-z_gal = np.append(z_disk, z_bulge)
+z_gal = np.append(z_bulge, z_disk)
 z_gal = np.append(z_gal, z_halo)
-Vrho_gal = np.append(Vrho_disk, Vrho_bulge)
+Vrho_gal = np.append(Vrho_bulge, Vrho_disk)
 Vrho_gal = np.append(Vrho_gal, Vrho_halo)
-Vphi_gal = np.append(Vphi_disk, Vphi_bulge)
+Vphi_gal = np.append(Vphi_bulge, Vphi_disk)
 Vphi_gal = np.append(Vphi_gal, Vphi_halo)
-Vz_gal = np.append(Vz_disk, Vz_bulge)
+Vz_gal = np.append(Vz_bulge, Vz_disk)
 Vz_gal = np.append(Vz_gal, Vz_halo)
 
 # This is just to keep the galaxy array consistent, NOT for SB measurement
-I_gal = np.append(I_disk, I_bulge)
+I_gal = np.append(I_bulge, I_disk)
 I_gal = np.append(I_gal, I_halo)
 Li = np.sum(I_gal)
 
@@ -279,15 +274,47 @@ def update():
 #        Vz_template =  np.random.normal(mean_z_disk, 2.*sigma_z_disk, int(N_disk/9))
     
     # DISK
-        sign = np.round(np.random.uniform(-1,1,N_disk))
+    #ALT1
+        # Vrho_p = np.random.normal(mean_rho_disk, 2.*sigma_rho_disk, N_disk/2.)
+        # Vrho_n = np.random.normal(-mean_rho_disk, 2.*sigma_rho_disk, N_disk/2.)
+        # galaxy[6,N_bulge:] =np.append(Vrho_p, Vrho_n)
+
+        # Vphi_disk = tools.v_rotational(rho_disk, V_opt, R_opt, L2Lstar)
+        # Vz_p = np.random.normal(mean_z_disk, 2.*sigma_z_disk, N_disk/2.)
+        # Vz_n = np.random.normal(-mean_z_disk, 2.*sigma_z_disk, N_disk/2.)
+        # galaxy[7,N_bulge:] = np.append(Vz_p, Vz_n)
+    #ALT2
+        sign = np.round(np.random.uniform(0,1,N_disk))*2.-1
         galaxy[6,N_bulge:] = sign*np.random.normal(mean_rho_disk, 2.*sigma_rho_disk, N_disk)
+        sign = np.round(np.random.uniform(0,1,N_disk))*2.-1
         galaxy[7,N_bulge:] = sign*np.random.normal(mean_z_disk, 2.*sigma_z_disk, N_disk)
 
     # BULGE
+        #ALT1
+        # Vphi_p = np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge/2)
+        # Vphi_n = np.random.normal(-mean_bulge, 2.*sigma_bulge, N_bulge/2)
+        # galaxy[3,:N_bulge] = np.append(Vphi_p, Vphi_n)
+
+        # Vrho_p = np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge/2)
+        # Vrho_n = np.random.normal(-mean_bulge, 2.*sigma_bulge, N_bulge/2)
+        # galaxy[6,:N_bulge] = np.append(Vrho_p, Vrho_n)
+
+        # Vz_p = np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge/2)
+        # Vz_n = np.random.normal(-mean_bulge, 2.*sigma_bulge, N_bulge/2)
+        # galaxy[7,:N_bulge] = np.append(Vz_p, Vz_n)
+
+        #ALT2
         # sign = np.round(np.random.uniform(-1,1,N_bulge))
         # galaxy[3,:N_bulge] = sign*np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
         # galaxy[6,:N_bulge] = sign*np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
         # galaxy[7,:N_bulge] = sign*np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
+
+        sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
+        galaxy[3,:N_bulge] = sign*np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
+        sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
+        galaxy[6,:N_bulge] = sign*np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)/galaxy[0,:N_bulge]
+        sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
+        galaxy[7,:N_bulge] = sign*np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
 
 
         galaxy[0] += galaxy[6]*dt
@@ -308,7 +335,8 @@ def update():
     galaxy_cart[2,0:N_bulge]=galaxy[0,0:N_bulge]*np.cos(galaxy[1,0:N_bulge])
 
     print "Final"
-    tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[4], start_r, I_gal, colonized_fraction)
+#    print "Vphi_disk\t%e\t%e"%(np.mean(galaxy[3]), np.std(galaxy[3]))
+    tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[5], start_r, I_gal, colonized_fraction)
     print "*****col_fraction*****"
     print np.sum(galaxy[5])/len(galaxy[5])
 #    print np.where(galaxy[5]==-1)[0]

@@ -285,7 +285,7 @@ def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
     HIST=axHIST.hist(log[:,3])
 #    plt.show()
 
-def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0, bin_no=1000):
+def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0, bin_no=100):
     print "X_gal, Y_gal, Z_gal range"
     print np.min(x_gal), np.max(x_gal)
     print np.min(y_gal), np.max(y_gal)
@@ -298,7 +298,7 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0, bin_no
     axfo = plt.subplot(121)
     cmap = plt.cm.jet
     cmap.set_bad('w', 1.)
-    N, xedges, yedges = binned_statistic_2d(x_gal, y_gal, cont, 'count', bins=bin_no)
+    N, xedges, yedges = binned_statistic_2d(x_gal, y_gal, cont, 'mean', bins=bin_no)
     plt.imshow((N.T), origin='lower',
                extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
                aspect='equal', interpolation='nearest', cmap=cmap)
@@ -309,14 +309,14 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0, bin_no
     cb = plt.colorbar(pad=0.2,
                       orientation='horizontal')
     cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-#    plt.clim(0,13)
+    plt.clim(np.min(cont),np.max(cont))
 #    plt.clim(0, np.max(np.log10(N.T)))
     # Edge-on
     axeo = plt.subplot(122)
     cmap = plt.cm.jet
     cmap.set_bad('w', 1.)
-    N, xedges, zedges=binned_statistic_2d(x_gal, z_gal, I_gal, 'count', bins=bin_no)
-    plt.imshow(np.log10(N.T), origin='lower',
+    N, xedges, zedges=binned_statistic_2d(x_gal, z_gal, cont, 'mean', bins=bin_no)
+    plt.imshow((N.T), origin='lower',
                extent=[xedges[0], xedges[-1], zedges[0], zedges[-1]],
                aspect='equal', interpolation='nearest', cmap=cmap)
 
@@ -331,9 +331,7 @@ def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0, bin_no
     cb = plt.colorbar(pad=0.2,
                       orientation='horizontal')
     cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-    plt.clim(0, np.log10(np.max(I_gal)))
+#    plt.clim(0, np.log10(np.max(I_gal)))
     plt.suptitle('time = %.2f Myr\t R$_0$ = %d pc\t Colonized fraction = %.1f'%(t/Myr, R0, col_frac))
-#    plt.clim(5,10)
-#    plt.clim(0, np.max(np.log10(N.T)))
     plt.show()
     return axfo, axeo
