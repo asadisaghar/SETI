@@ -21,21 +21,21 @@ Gconst = Gconst*meter**3/(kg*sec**2)
 # ===================== #
 #        HANDLES        #
 # ===================== #
-N_disk = int(5.e3)  # number of particles in disk (same order as N_gal)
+N_disk = int(1.e4)  # number of particles in disk (same order as N_gal)
 #dt = np.logspace(-1, 1, num=1)*Myr  # galactic rotation time step
 dt = 0.1*Myr
 #dt_const = np.logspace(-12, 1, num=1)*Myr  # construction time delay
-dt_const = 1e-12*Myr
+dt_const = 1e-13*Myr
 #VC = np.logspace(2, 0, num=1)*cSpeed  # probe velocity
-VC = 1e-1*cSpeed
+VC = 5e-1*cSpeed
 t = 0
-t_f = 1.e2*Myr  # time to stop
+t_f = 1.e3*Myr  # time to stop
 SingleProbe = False
 InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 5e3  # radial distance from the galactic center in pc
+start_r = 8e3  # radial distance from the galactic center in pc
 r_err = 100.
 name = 'bulge_cf1_single'
 # ===================== #
@@ -52,15 +52,16 @@ alpha_disk = h_rho_disk  # disk scale length (pc)
 n_s_disk = 1  # disk Sersic index
 M_disk = 6.e10  # disk mass
 #FIXME values
-mean_rho_disk = 200.*km/sec
-sigma_rho_disk = 130.*km/sec
-mean_z_disk = 50.*km/sec
-sigma_z_disk = 30.*km/sec
+mean_rho_disk = 20.*km/sec
+sigma_rho_disk = 13.*km/sec
+mean_z_disk = 5.*km/sec
+sigma_z_disk = 3.*km/sec
 
 # BULGE
 #N_bulge = int(0.33000*N_disk)
 ## Maybe this is too small after all...
-N_bulge = int(0.01*N_disk)
+#N_bulge = int(0.01*N_disk)
+N_bulge = 0
 R_bulge = 2.7e3  # bulge radius
 I_0_bulge = 5.e9  # bulge central intensity
 alpha_bulge = R_bulge/3.  # bulge scale length
@@ -131,11 +132,11 @@ z_halo = r_halo*np.cos(phi_halo)
 phi_halo = theta_halo
 
 # VEL:Disk (Rotation curve analytic relation)
-#V_rho_template = np.random.normal(mean_rho_disk, 2.*sigma_rho_disk, int(N_disk/9))
-#V_z_template =  np.random.normal(mean_z_disk, 2.*sigma_z_disk, int(N_disk/9))
-Vrho_disk = np.random.normal(mean_rho_disk, 2.*sigma_rho_disk, N_disk)
+#Vrho_disk = np.random.normal(mean_rho_disk, 2.*sigma_rho_disk, N_disk)
+Vrho_disk = np.zeros(N_disk)
 Vphi_disk = tools.v_rotational(rho_disk, V_opt, R_opt, L2Lstar)
-Vz_disk = np.random.normal(mean_z_disk, 2.*sigma_z_disk, N_disk)
+#Vz_disk = np.random.normal(mean_z_disk, 2.*sigma_z_disk, N_disk)
+Vz_disk = np.zeros(N_disk)
 
 # VEL:Bulge (Gaussian dist. with given mean and dispersion)
 #Vrho_bulge = np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge) #galaxy[6]
@@ -227,7 +228,7 @@ def update():
         galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
         galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
         # DISK
-        galaxy_cart[2,N_bulge+1:]=galaxy[2,N_bulge+1:]
+        galaxy_cart[2,N_bulge:]=galaxy[2,N_bulge:]
         # BULGE
         galaxy_cart[2,0:N_bulge]=galaxy[0,0:N_bulge]*np.cos(galaxy[1,0:N_bulge])
 
@@ -274,13 +275,24 @@ def update():
             tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[4], start_r, I_gal, colonized_fraction)
     
     # Rotate the galaxy!
+#        Vrho_template = np.random.normal(mean_rho_disk, 2.*sigma_rho_disk, int(N_disk/9))
+#        Vz_template =  np.random.normal(mean_z_disk, 2.*sigma_z_disk, int(N_disk/9))
     
     # DISK
-        galaxy[0,N_bulge+1:] += galaxy[6,N_bulge+1:]*dt
-        galaxy[1,N_bulge+1:] += (galaxy[3,N_bulge+1:]/galaxy[0,N_bulge+1:])*dt
-        galaxy[2,N_bulge+1:] += galaxy[7,N_bulge+1:]*dt
+        sign = np.round(np.random.uniform(-1,1,N_disk))
+        galaxy[6,N_bulge:] = sign*np.random.normal(mean_rho_disk, 2.*sigma_rho_disk, N_disk)
+        galaxy[7,N_bulge:] = sign*np.random.normal(mean_z_disk, 2.*sigma_z_disk, N_disk)
+
     # BULGE
-        galaxy[1,0:N_bulge] += omega_bulge*dt
+        # sign = np.round(np.random.uniform(-1,1,N_bulge))
+        # galaxy[3,:N_bulge] = sign*np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
+        # galaxy[6,:N_bulge] = sign*np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
+        # galaxy[7,:N_bulge] = sign*np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
+
+
+        galaxy[0] += galaxy[6]*dt
+        galaxy[1] += (galaxy[3]/galaxy[0])*dt
+        galaxy[2] += galaxy[7]*dt
 
         i += 1
 #galaxy_inds = {"rho": 0, "phi": 1, "z", 2, "Vphi": 3, "I": 4, "CS": 5, "Vrho": 6, "Vz": 7}
@@ -291,7 +303,7 @@ def update():
     galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
     galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
     # DISK
-    galaxy_cart[2,N_bulge+1:]=galaxy[2,N_bulge+1:]
+    galaxy_cart[2,N_bulge:]=galaxy[2,N_bulge:]
     # BULGE
     galaxy_cart[2,0:N_bulge]=galaxy[0,0:N_bulge]*np.cos(galaxy[1,0:N_bulge])
 
