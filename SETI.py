@@ -21,16 +21,16 @@ Gconst = Gconst*meter**3/(kg*sec**2)
 # ===================== #
 #        HANDLES        #
 # ===================== #
-N_disk = int(1.e4)  # number of particles in disk (same order as N_gal)
+N_disk = int(5.e3)  # number of particles in disk (same order as N_gal)
 #dt = np.logspace(-1, 1, num=1)*Myr  # galactic rotation time step
-dt = 0.1*Myr
+dt = 0.01*Myr
 #dt_const = np.logspace(-12, 1, num=1)*Myr  # construction time delay
 dt_const = 1e-13*Myr
 #VC = np.logspace(2, 0, num=1)*cSpeed  # probe velocity
-VC = 5e-1*cSpeed
+VC = 1e-2*cSpeed
 t = 0
 t_f = 1.e3*Myr  # time to stop
-SingleProbe = False
+SingleProbe = True
 InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
@@ -199,14 +199,11 @@ galaxy[7] = Vz_gal
 #galaxy_inds = {"rho": 0, "phi": 1, "z", 2, "Vphi": 3, "I": 4, "CS": 5, "Vrho": 6, "Vz": 7}
 
 ## Initial plotting
-x_gal=rho_gal*np.cos(phi_gal)
-y_gal=rho_gal*np.sin(phi_gal)
-print "Initial"
-tools.plot_cont_galaxy(t, x_gal, y_gal, z_gal, I_gal, start_r, I_gal)
+#x_gal=rho_gal*np.cos(phi_gal)
+#y_gal=rho_gal*np.sin(phi_gal)
 
 def update():
     global t
-#    logfile = open('%s.txt'%(name), 'w')
 # ============== #
 #    UPDATING    #
 # ============== #
@@ -214,60 +211,46 @@ def update():
     i = 0
     col_tot = 0.
     count_tot = 0.
-    print "CS"
+#    print "CS"
     colonized_fraction = np.sum(galaxy[5])/len(galaxy[5])
-    print colonized_fraction
-#    while colonized_fraction < 0.3:
+    print "%.2f colonized"%(colonized_fraction)
+    print "Writing to file..."
+    filename = "galaxy_%.0f"%(t/Myr)
+    np.save(filename, galaxy)
+#    tools.plot_cont_galaxy(t, x_gal, y_gal, z_gal, I_gal, start_r, I_gal)
+
+#    while colonized_fraction < 0.9:
     while t < t_f:
         galaxy_cart = np.zeros((3,(N_bulge+N_disk+N_halo)))
         galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
         galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
-        # DISK
-        galaxy_cart[2,N_bulge:]=galaxy[2,N_bulge:]
-        # BULGE
-        galaxy_cart[2,0:N_bulge]=galaxy[0,0:N_bulge]*np.cos(galaxy[1,0:N_bulge])
+        galaxy_cart[2]=galaxy[2]
 
-        # galaxy_cart = np.zeros((3,(N_bulge+N_disk+N_halo)))
-        # galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
-        # galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
-        # galaxy_cart[2]=galaxy[2]
         t = i*dt
-#        print '\tt = %.2f Myr\n-------%d = %.2f N_gal------'%(t/Myr, col_tot, col_tot/N_gal)
+
         # Colonize the galaxy!
         dist = VC * (dt-dt_const)
         ## how about the case where dt_const is larger?
         if SingleProbe:
-            report = np.zeros(((int(t_f/dt)+1), 4))
-            report[i, 0] = t/Myr
             galaxy[4], galaxy[5], colonized, count, ind_dmin = tools.col_single(galaxy, galaxy_cart, dist, count, coveringFraction)
-#            col_tot += colonized
-            report[i, 1] = np.sum(galaxy[4]/Li)
-            report[i, 2] = np.sum(abs(galaxy[5])/N_gal)
-            report[i, 3] = galaxy[0, ind_dmin]
-#            logfile.write('%e\t%e\t%e\t%f\n' %(report[i,0], report[i,1], report[i,2], report[i,3]))
         elif InfiniteProbe:
-            report = np.zeros(((int(t_f/dt)+1), 4))
-            report[i, 0] = t/Myr
             ind = np.where(CS_gal==1)[0]
             galaxy[4], galaxy[5], colonized, count = tools.col_inf(galaxy, galaxy_cart, dist, count, ind, coveringFraction)
-#            col_tot += colonized
-            report[i, 1] = np.sum(galaxy[4]/Li)
-            report[i, 2] = np.sum(abs(galaxy[5])/N_gal)
-#            logfile.write('%e\t%e\t%e\t%f\n' %(report[i,0], report[i,1], report[i,2], report[i,3]))
 
 #        if i==2 or i==10 or i==20 or i==1000:
 
-#        print "CS_INITIAL"
         colonized_fraction = np.sum(galaxy[5])/len(galaxy[5])
-#        print colonized_fraction
-        if np.round(colonized_fraction)==0.1 or np.round(colonized_fraction)==0.2:
+        if np.round(colonized_fraction)==0.2 or np.round(colonized_fraction)==0.5:
 
-            galaxy_cart = np.zeros((3,(N_bulge+N_disk+N_halo)))
-            galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
-            galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
-            galaxy_cart[2]=galaxy[2]
-            print "step%d"%(i)
-            tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[4], start_r, I_gal, colonized_fraction)
+            # galaxy_cart = np.zeros((3,(N_bulge+N_disk+N_halo)))
+            # galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
+            # galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
+            # galaxy_cart[2]=galaxy[2]
+            print "%.2f colonized"%(colonized_fraction)
+            print "Writing to file..."
+            filename = "galaxy_%.0f"%(t/Myr)
+            np.save(filename, galaxy)
+#            tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[4], start_r, I_gal, colonized_fraction)
     
     # Rotate the galaxy!
 #        Vrho_template = np.random.normal(mean_rho_disk, 2.*sigma_rho_disk, int(N_disk/9))
@@ -316,7 +299,6 @@ def update():
         sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
         galaxy[7,:N_bulge] = sign*np.random.normal(mean_bulge, 2.*sigma_bulge, N_bulge)
 
-
         galaxy[0] += galaxy[6]*dt
         galaxy[1] += (galaxy[3]/galaxy[0])*dt
         galaxy[2] += galaxy[7]*dt
@@ -324,22 +306,19 @@ def update():
         i += 1
 #galaxy_inds = {"rho": 0, "phi": 1, "z", 2, "Vphi": 3, "I": 4, "CS": 5, "Vrho": 6, "Vz": 7}
 
-#    logfile.close()
+    # galaxy_cart = np.zeros((3,(N_bulge+N_disk+N_halo)))
+    # galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
+    # galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
+    # # DISK
+    # galaxy_cart[2,N_bulge:]=galaxy[2,N_bulge:]
+    # # BULGE
+    # galaxy_cart[2,0:N_bulge]=galaxy[0,0:N_bulge]*np.cos(galaxy[1,0:N_bulge])
 
-    galaxy_cart = np.zeros((3,(N_bulge+N_disk+N_halo)))
-    galaxy_cart[0]=galaxy[0]*np.cos(galaxy[1])
-    galaxy_cart[1]=galaxy[0]*np.sin(galaxy[1])
-    # DISK
-    galaxy_cart[2,N_bulge:]=galaxy[2,N_bulge:]
-    # BULGE
-    galaxy_cart[2,0:N_bulge]=galaxy[0,0:N_bulge]*np.cos(galaxy[1,0:N_bulge])
-
-    print "Final"
-#    print "Vphi_disk\t%e\t%e"%(np.mean(galaxy[3]), np.std(galaxy[3]))
-    tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[5], start_r, I_gal, colonized_fraction)
-    print "*****col_fraction*****"
-    print np.sum(galaxy[5])/len(galaxy[5])
-#    print np.where(galaxy[5]==-1)[0]
+    print "%.2f colonized"%(colonized_fraction)
+    print "Writing to file..."
+    filename = "galaxy_%.0f"%(t/Myr)
+    np.save(filename, galaxy)
+#    tools.plot_cont_galaxy(t, galaxy_cart[0], galaxy_cart[1], galaxy_cart[2], galaxy[5], start_r, I_gal, colonized_fraction)
 cProfile.run("update()", "stats")
 
 # ==================== #
