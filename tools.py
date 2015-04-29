@@ -28,6 +28,15 @@ colors = ['#d7191c', '#fdae61', '#abd9e9','#2c7bb6']
 Gconst = 6.67e-11 #N.m^2.kg^-2 = kg^1.m^1.s^-2.m^2.kg^-2 = kg^-1.m^3.s^-2 
 Gconst = Gconst*meter**3/(kg*sec**2)
 # ===================== #
+import datetime
+import contextlib, time
+@contextlib.contextmanager
+def timer(msg="XXXXXX"):
+    start = datetime.datetime.now()
+    yield
+    end = datetime.datetime.now()
+    print msg, end - start
+
 # Initialization (Uniform or Exponential), no signs. rho, and phi of the disk, and all three(r, phi, theta) of the bulge
 def init_pos(N, low, high_scale, dist):
     random.seed(RS)
@@ -127,57 +136,55 @@ def CS_random(N_gal):
 
 # Spherical colonization, infinite probes
 # As each step, all site within the sphere of r=dist is colonized
-def col_inf(galaxy, galaxy_cart, dist, count, ind, coveringFraction):
-    dist *= count
-    col_dist = 0
-    colonized = 0
-    r_col = galaxy[0,ind]
-    phi_col = galaxy[1,ind]
-    z_col = galaxy[2,ind]
-    x_col = r_col*cos(phi_col)
-    y_col = r_col*sin(phi_col)
-    if dist<=r_col:
-        dphi = np.arcsin(dist/r_col)
-        reachable = np.where((abs(galaxy[0]-r_col)<=dist) &
-                             (abs(galaxy[1]-phi_col)<=dphi) &
-                             (abs(galaxy[2]-z_col)<=dist) &
-                             (galaxy[5]==0))
+def col_inf(galaxy, dist, coveringFraction, N_bulge):
+    x_gal = np.zeros_like(galaxy[0])
+    y_gal = np.zeros_like(galaxy[1])
+    z_gal = np.zeros_like(galaxy[2])
+
+    # Bulge (Spherical to Cartesian)
+    r_gal = galaxy[0,:N_bulge]
+    theta_gal = galaxy[1,:N_bulge]
+    phi_gal_sph = galaxy[2,:N_bulge]
+
+    x_gal[:N_bulge] = r_gal*np.sin(theta_gal)*np.cos(phi_gal_sph)
+    y_gal[:N_bulge] = r_gal*np.sin(theta_gal)*np.sin(phi_gal_sph)
+    z_gal[:N_bulge] = r_gal*np.cos(theta_gal)
+    
+    # Disk (Cylindrical to Cartesian)
+    rho_gal = galaxy[0,N_bulge:]
+    phi_gal_cyl = galaxy[1,N_bulge:]
+    z_gal_cyl = galaxy[2,N_bulge:]
+    
+    x_gal[N_bulge:] = rho_gal*np.cos(phi_gal_cyl)
+    y_gal[N_bulge:] = rho_gal*np.sin(phi_gal_cyl)
+    z_gal[N_bulge:] = z_gal_cyl
+
+    # Spot the colonizer
+    ind  = np.where(galaxy[5]==1)[0][0]
+    z_col = z_gal[ind]
+    y_col = y_gal[ind]
+    x_col = x_gal[ind]              
+
+    d = np.sqrt((x_col-x_gal)**2+(y_col-y_gal)**2+(z_col-z_gal)**2)
+    d_reachable = np.where(d<=dist)[0]
+    if len(d_reachable) > 1000:
+        indcs = d_reachable[np.random.random_integers(0, len(d_reachable)-1, 1000)]
     else:
-        reachable = np.where((galaxy[0]<=dist) &
-                             (abs(galaxy[2,:]-z_col)<=dist) &
-                             (galaxy[5]==0))
-    N_reachable = np.size(reachable[0])
-    if N_reachable>0:
-        ##inside update_colonization##
-        d2 = np.power(galaxy_cart[0,reachable]-x_col,2)
-        d2 += np.power(galaxy_cart[1,reachable]-y_col,2)
-        d2 += np.power(galaxy[2,reachable]-z_col,2)
-        distance_radius = np.sqrt(d2)
-#        print dist, distance_radius
-        galaxy[5,ind] = -1
-        to_colonize = np.where(distance_radius<=dist)[1]
-        galaxy[5,to_colonize] = 1
-        galaxy[4,to_colonize] *= (1. - coveringFraction)
+        indcs = d_reachable
+#    print d_reachable
+#    if galaxy[5,d_reachable].any()==0:
+    galaxy[5,indcs]=1
 
-        colonized += len(to_colonize)
-#        print "%d new sites are captured!"%(colonized)
-        count = 1
-    else:
-#        print "No potential sites! Try again in the next time step!!"
-        count +=1
+    galaxy[4,indcs] *= (1.-coveringFraction)
+    galaxy[5,ind] = -1
 
-    # if N_reachable>0:
-    #     while col_dist < dist/2.:
-    #         galaxy[5, ind] = -1.
-    #         galaxy[5, reachable] = 1.
-    #         galaxy[4, reachable] = 0.
-    #         colonized += N_reachable
-    #         col_dist += dist
+#    distances = d[d_reachable]
 
-    # else:
-    #     count +=1
+    print "%d new sites are captured!"%(len(indcs))
+#    else:
+#        print "all reachable site are already taken"
 
-    return galaxy[4], galaxy[5], colonized, count
+    return galaxy
 
 # Particle-to-particle colonization, single probe
 # As each step, the *closest* site within the sphere of r=dist is colonized,
@@ -293,6 +300,7 @@ def plot_part_galaxy(filename):
     x_gal = galaxy[0]*np.cos(galaxy[1])
     y_gal = galaxy[0]*np.sin(galaxy[1])
     z_gal = galaxy[2]
+    
     cont = galaxy[4]
     cs = galaxy[5]
     colonized_fraction = np.sum(galaxy[5])/len(galaxy[5])
@@ -322,7 +330,7 @@ def plot_part_galaxy(filename):
 #    cb = plt.colorbar(pad=0.2,
 #                      orientation='horizontal')
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-    plt.suptitle('time = %s Myr \t Colonized fraction = %.1f'%(t, colonized_fraction))
+    plt.suptitle('time = %s Myr \t Colonized fraction = %.2f'%(t, colonized_fraction))
     plt.show()
 
     return galaxy
@@ -346,7 +354,7 @@ def plot_cont_galaxy(filename, bin_no=100): #If you have enough particle resolut
     fig = plt.figure(figsize=(20, 10))
     # Face-on
     axfo = plt.subplot(121)
-    cmap = plt.cm.jet
+    cmap = plt.cm.spectral_r
     cmap.set_bad('w', 1.)
     N, xedges, yedges = binned_statistic_2d(x_gal, y_gal, cont, 'mean', bins=bin_no)
     plt.imshow(np.log10(N.T), origin='lower',
@@ -361,11 +369,12 @@ def plot_cont_galaxy(filename, bin_no=100): #If you have enough particle resolut
     cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
     clim_min = np.min(np.log10(cont))
     clim_max = np.max(np.log10(cont)) 
+    plt.title("time = %s Myr"%(t))
 #    plt.clim(clim_min, clim_max)
 
     # Edge-on
     axeo = plt.subplot(122)
-    cmap = plt.cm.jet
+    cmap = plt.cm.spectral_r
     cmap.set_bad('w', 1.)
     N, xedges, zedges=binned_statistic_2d(x_gal, z_gal, cont, 'mean', bins=bin_no)
     plt.imshow(np.log10(N.T), origin='lower',
@@ -382,6 +391,7 @@ def plot_cont_galaxy(filename, bin_no=100): #If you have enough particle resolut
     clim_min = np.min(np.log10(cont))
     clim_max = np.max(np.log10(cont)) 
 #    plt.clim(clim_min, clim_max)
-    plt.suptitle('time = %s Myr \t Colonized fraction = %.1f'%(t, colonized_fraction))
-    plt.show()
+    plt.title("Colonized fraction = %.2f"%(colonized_fraction))
+    plt.savefig("%s.png"%(filename))
+#    plt.show()
     return galaxy
