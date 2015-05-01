@@ -105,6 +105,10 @@ def v_rotational(r, V_opt, R_opt, L2Lstar):
     V2_rot = V2_disk + V2_DM
     return np.sqrt(V2_rot)
 
+# Calculating radial velocity od the disk as a function of r from arXiv:1104.3236v4 (eq. 12) 
+def v_radial(r, R_c):
+    return 1. - np.exp(-r/R_c)
+
 #Initializing disk luminosity distribution
 def init_sersic(I_0, alpha, n_s, r):
     L = I_0*np.exp((-r/alpha)**(1./n_s))
@@ -167,8 +171,8 @@ def col_inf(galaxy, dist, coveringFraction, N_bulge):
 
     d = np.sqrt((x_col-x_gal)**2+(y_col-y_gal)**2+(z_col-z_gal)**2)
     d_reachable = np.where(d<=dist)[0]
-    if len(d_reachable) > 1000:
-        indcs = d_reachable[np.random.random_integers(0, len(d_reachable)-1, 1000)]
+    if len(d_reachable) > 10:
+        indcs = d_reachable[np.random.random_integers(0, len(d_reachable)-1, 10)]
     else:
         indcs = d_reachable
 #    print d_reachable
@@ -305,16 +309,22 @@ def plot_part_galaxy(filename):
     cs = galaxy[5]
     colonized_fraction = np.sum(galaxy[5])/len(galaxy[5])
 
+    x_col = galaxy[0,np.where(galaxy[5]==1)[0]]*np.cos(galaxy[1,np.where(galaxy[5]==1)[0]])
+    y_col = galaxy[0,np.where(galaxy[5]==1)[0]]*np.sin(galaxy[1,np.where(galaxy[5]==1)[0]])
+    z_col = galaxy[2,np.where(galaxy[5]==1)[0]]
+
     fig = plt.figure(figsize=(20, 10))
     # Face-on
     axfo = plt.subplot(121)
     cmap = plt.cm.jet
     cmap.set_bad('k', 1.)
-    fo = axfo.scatter(x_gal, y_gal, marker='o', c=np.log10(cont), alpha=0.3, cmap=cmap)
+#    fo = axfo.scatter(x_gal, y_gal, marker='o', c=np.log10(cont), alpha=0.3, cmap=cmap)
+    fo = axfo.scatter(x_col, y_col, marker='o', c='k', alpha=0.3)
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Y (pc)')
     plt.xlim([-5e4, 5e4])
     plt.ylim([-5e4, 5e4])
+    plt.title("time = %s Myr"%(t))
 #    cb = plt.colorbar(pad=0.2,
 #                      orientation='horizontal')
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
@@ -322,7 +332,8 @@ def plot_part_galaxy(filename):
     axfo = plt.subplot(122)
     cmap = plt.cm.jet
     cmap.set_bad('k', 1.)
-    eo = axfo.scatter(x_gal, z_gal, marker='o', c=np.log10(cont), alpha=0.3, cmap=cmap)
+#    eo = axfo.scatter(x_gal, z_gal, marker='o', c=np.log10(cont), alpha=0.3, cmap=cmap)
+    eo = axfo.scatter(x_col, z_col, marker='o', c='k', alpha=0.3)
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Z (pc)')
     plt.xlim([-5e4, 5e4])
@@ -330,8 +341,9 @@ def plot_part_galaxy(filename):
 #    cb = plt.colorbar(pad=0.2,
 #                      orientation='horizontal')
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-    plt.suptitle('time = %s Myr \t Colonized fraction = %.2f'%(t, colonized_fraction))
-    plt.show()
+    plt.title("Colonized fraction = %.2f"%(colonized_fraction))
+    plt.savefig("%s.png"%(filename))
+#    plt.show()
 
     return galaxy
 
@@ -395,3 +407,44 @@ def plot_cont_galaxy(filename, bin_no=100): #If you have enough particle resolut
     plt.savefig("%s.png"%(filename))
 #    plt.show()
     return galaxy
+        
+# ==================== #
+#        TESTING       #
+# ==================== #
+# Model functions	
+def expo(x, a, b, c):
+    return a * np.exp(-b * x) + c
+
+def gauss(x, A, mu, sigma):
+    val = A*np.exp(-(x-mu)**2/(2.*sigma**2))
+    return val
+
+def particle_dist_tst(xdata, ydata, param1, param2, param3):
+    import scipy.optimize as spo
+    y = func(xdata, param1, param2, param3)
+    popt, pcov = spo.curve_fit(func, xdata, ydata)
+    return popt, pcov
+    
+def number_density_fit(data, bins, model, p1=0, p2=0, p3=0, Pdensity=True, fit=True):
+    import scipy.optimize as spo
+# Histogramming data
+    hist, bin_edges = np.histogram(data, bins, density=Pdensity)
+    bin_centers = (bin_edges[:-1] + bin_edges[1:])/2
+    if fit:
+        print('Fitting in process...')
+# The initial guess for function parameters
+        p0 = [p1, p2, p3]
+        if model == 'gauss':
+            coeff, var_matrix = spo.curve_fit(gauss, bin_centers, hist, p0=p0)
+# Get the fitted curve
+            hist_fit = gauss(bin_centers, coeff[0], coeff[1], coeff[2])
+        elif model == 'expo':
+            coeff, var_matrix = spo.curve_fit(expo, bin_centers, hist, p0=p0)
+            hist_fit = expo(bin_centers, coeff[0], coeff[1], coeff[2])
+
+        plt.plot(bin_centers, hist, 'om', label='Test data')
+        plt.plot(bin_centers, hist_fit, '-k', linewidth=2, label='Fitted data')
+        
+    if fit:
+        return (coeff[0], coeff[1], coeff[2])
+        
