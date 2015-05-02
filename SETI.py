@@ -41,19 +41,19 @@ cSpeed = 3.e5 #[km/s]
 # ===================== #
 N_disk = int(1.e4)  # number of particles in disk (same order as N_gal)
 #dt = np.logspace(-1, 1, num=1)*Myr  # galactic rotation time step
-dt = 0.1*Myr2sec #[s] #do NOT use anything longer than 0.1 Myr, or disk rotation is messed up!!
+dt = 1.*Myr2sec #[s] #do NOT use anything longer than 0.1 Myr, or disk rotation is messed up!!
 #dt_const = np.logspace(-12, 1, num=1)*Myr  # construction time delay
 dt_const = 1e-12*Myr2sec #[s]
 #VC = np.logspace(2, 0, num=1)*cSpeed  # probe velocity
-VC = 1e-2*cSpeed #[km/s]
+VC = 1e-3*cSpeed #[km/s]
 t = 1
-t_f = 5.e3*Myr2sec  # time to stop #[s]
+t_f = 1.e3*Myr2sec  # time to stop #[s]
 SingleProbe = False
 InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 8e3  # radial distance from the galactic center in #[pc]
+start_r = 15e3  # radial distance from the galactic center in #[pc]
 r_err = 1000. #[pc]
 # ===================== #
 #  Galactic parameters  #
@@ -184,13 +184,13 @@ galaxy[7] = V3_gal
 # ============== #
 #    UPDATING    #
 # ============== #
-#count = 1
+count = 1
 i = 0
 #col_tot = 0.
 #count_tot = 0.
 colonized_fraction = np.sum(galaxy[5])/len(galaxy[5])
 
-while colonized_fraction < 0.4 and t < t_f:
+while abs(colonized_fraction) < 0.7 and t < t_f:
 #    print t
     t = i*dt #[sec]
     # Colonize the galaxy!
@@ -200,7 +200,7 @@ while colonized_fraction < 0.4 and t < t_f:
     if SingleProbe:
         galaxy[4], galaxy[5], colonized, count, ind_dmin = tools.col_single(galaxy, galaxy_cart, dist, count, coveringFraction)
     elif InfiniteProbe:
-        galaxy = tools.col_inf(galaxy, dist, coveringFraction, N_bulge=N_bulge)
+        galaxy, count = tools.col_inf(galaxy, dist, count, coveringFraction, N_bulge=N_bulge)
     # Evaluate bulge velocities (Spherical)
     sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
     galaxy[6,:N_bulge] = sign*np.random.normal(mean_bulge, sigma_bulge, N_bulge) #[km/s]

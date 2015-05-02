@@ -140,12 +140,14 @@ def CS_random(N_gal):
 
 # Spherical colonization, infinite probes
 # As each step, all site within the sphere of r=dist is colonized
-def col_inf(galaxy, dist, coveringFraction, N_bulge):
+def col_inf(galaxy, dist, count, coveringFraction, N_bulge):
+    dist *= count
     x_gal = np.zeros_like(galaxy[0])
     y_gal = np.zeros_like(galaxy[1])
     z_gal = np.zeros_like(galaxy[2])
     cs_gal = galaxy[5]
-
+    I_gal = galaxy[4]
+    
     # Bulge (Spherical to Cartesian)
     r_gal = galaxy[0,:N_bulge]
     theta_gal = galaxy[1,:N_bulge]
@@ -165,39 +167,55 @@ def col_inf(galaxy, dist, coveringFraction, N_bulge):
     z_gal[N_bulge:] = z_gal_cyl
 
     # Spot the colonizer
-    ind  = np.where(galaxy[5]==1)[0][0]
-    print "colonizer:"
-    print ind
-    x_col = x_gal[ind]              
-    y_col = y_gal[ind]
-    z_col = z_gal[ind]
+    inds  = np.where(cs_gal==1)[0]
+    print "colonizer(s):"
+    print inds
 
-    d = np.sqrt((x_col-x_gal)**2+(y_col-y_gal)**2+(z_col-z_gal)**2)
-    d_reachable = np.where(d<=dist)[0]
-#    print "sites at reach:"
-#    print d_reachable
+    for ind in inds:
+        x_col = x_gal[ind]              
+        y_col = y_gal[ind]
+        z_col = z_gal[ind]
+
+        # Spot potential colonies
+        pots = np.where(cs_gal==0)[0]
+        x_pots = x_gal[pots]
+        y_pots = y_gal[pots]
+        z_pots = z_gal[pots]    
+        print "potential colony(/ies):(%d)"%(len(pots))
+#        print pots
+        d = np.sqrt((x_col-x_pots)**2+(y_col-y_pots)**2+(z_col-z_pots)**2)
+#        print d
+        d_reachable = pots[np.where(d<=dist)]
+#        print d_reachable
+        if len(d_reachable)>0:
+            print "sites to occupy by %d:(%d from %d)"%(ind, len(d_reachable), len(d))
+            print d_reachable
+            galaxy[5,d_reachable] = -1
+            galaxy[4,d_reachable] *= (1.-coveringFraction)
+#            galaxy[5,ind] = -1
+        else:
+            count +=1
     # if len(d_reachable) > 1000:
     #     indcs = d_reachable[np.random.random_integers(0, len(d_reachable)-1, 1000)]
     # else:
-    indcs = np.where(cs_gal[d_reachable]==0)[0]
-    print "unoccupied sites at rach:"
-    print indcs
-    for indx in indcs:
-        galaxy[5,indx]=1
-        print "occupied:"
-        print indx
+#    indcs = np.where(cs_gal[d_reachable]==0)[0]
+#    print "unoccupied sites at rach:"
+#    print indcs
+#    for indx in indcs:
+#        galaxy[5,indx]=1
+#        print "occupied:"
+#        print indx
 
-        galaxy[4,indx] *= (1.-coveringFraction)
+#        galaxy[4,indx] *= (1.-coveringFraction)
 
-    galaxy[5,ind] = -1
+#    galaxy[5,ind] = -1
 
-#    distances = d[d_reachable]
+##    distances = d[d_reachable]
 
-    print "%d new sites are captured!"%(len(indcs))
+#    print "%d new sites are captured!"%(len(indcs))
 #    else:
 #        print "all reachable site are already taken"
-
-    return galaxy
+    return galaxy, count
 
 # Particle-to-particle colonization, single probe
 # As each step, the *closest* site within the sphere of r=dist is colonized,
@@ -316,7 +334,7 @@ def plot_part_galaxy(filename):
     
     cont = galaxy[4]
     cs = galaxy[5]
-    ind = np.where(cs==1)[0][0]
+    ind = np.where(cs==1)[0]
 #    print ind
     colonized_fraction = np.sum(cs)/len(cs)
 
@@ -331,7 +349,7 @@ def plot_part_galaxy(filename):
     cmap = plt.cm.jet
     cmap.set_bad('k', 1.)
     fo = axfo.scatter(x_gal, y_gal, marker='o', c=np.log10(cont), alpha=0.3, cmap=cmap)
-    focol = axfo.scatter(x_col, y_col, marker='o', c='k', s=80)
+    focol = axfo.scatter(x_col, y_col, marker='o', c='k', s=30)
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Y (pc)')
     plt.xlim([-5e4, 5e4])
@@ -345,7 +363,7 @@ def plot_part_galaxy(filename):
     cmap = plt.cm.jet
     cmap.set_bad('k', 1.)
     eo = axfo.scatter(x_gal, z_gal, marker='o', c=np.log10(cont), alpha=0.3, cmap=cmap)
-    eocol = axfo.scatter(x_col, z_col, marker='o', c='k', s=80)
+    eocol = axfo.scatter(x_col, z_col, marker='o', c='k', s=30)
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Z (pc)')
     plt.xlim([-5e4, 5e4])
@@ -353,7 +371,7 @@ def plot_part_galaxy(filename):
 #    cb = plt.colorbar(pad=0.2,
 #                      orientation='horizontal')
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-    plt.title("Colonized fraction = %.2f"%(colonized_fraction))
+    plt.title("Colonized fraction = %.2f"%(abs(colonized_fraction)))
     plt.savefig("%s.png"%(filename))
 #    plt.show()
 
@@ -415,7 +433,7 @@ def plot_cont_galaxy(filename, bin_no=100): #If you have enough particle resolut
     clim_min = np.min(np.log10(cont))
     clim_max = np.max(np.log10(cont)) 
 #    plt.clim(clim_min, clim_max)
-    plt.title("Colonized fraction = %.2f"%(colonized_fraction))
+    plt.title("Colonized fraction = %.2f"%(abs(colonized_fraction)))
     plt.savefig("%s.png"%(filename))
 #    plt.show()
     return galaxy
