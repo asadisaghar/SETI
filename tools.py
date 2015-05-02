@@ -138,7 +138,7 @@ def CS_random(N_gal):
     CS[colonizer] = 1
     return CS
 
-def col_sing(galaxy, dist, count, coveringFraction, N_bulge):
+def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
     dist *= count
     x_gal = np.zeros_like(galaxy[0])
     y_gal = np.zeros_like(galaxy[1])
@@ -156,13 +156,22 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge):
     z_gal[:N_bulge] = r_gal*np.cos(theta_gal)
     
     # Disk (Cylindrical to Cartesian)
-    rho_gal = galaxy[0,N_bulge:]
-    phi_gal_cyl = galaxy[1,N_bulge:]
-    z_gal_cyl = galaxy[2,N_bulge:]
+    rho_gal = galaxy[0,N_bulge:N_disk]
+    phi_gal_cyl = galaxy[1,N_bulge:N_disk]
+    z_gal_cyl = galaxy[2,N_bulge:N_disk]
     
-    x_gal[N_bulge:] = rho_gal*np.cos(phi_gal_cyl)
-    y_gal[N_bulge:] = rho_gal*np.sin(phi_gal_cyl)
-    z_gal[N_bulge:] = z_gal_cyl
+    x_gal[N_bulge:N_disk] = rho_gal*np.cos(phi_gal_cyl)
+    y_gal[N_bulge:N_disk] = rho_gal*np.sin(phi_gal_cyl)
+    z_gal[N_bulge:N_disk] = z_gal_cyl
+
+    # Halo (Spherical to Cartesian)
+    r_gal = galaxy[0,N_bulge+N_disk:]
+    theta_gal = galaxy[1,N_bulge+N_disk:]
+    phi_gal_sph = galaxy[2,N_bulge+N_disk:]
+
+    x_gal[N_bulge+N_disk:] = r_gal*np.sin(theta_gal)*np.cos(phi_gal_sph)
+    y_gal[N_bulge+N_disk:] = r_gal*np.sin(theta_gal)*np.sin(phi_gal_sph)
+    z_gal[N_bulge+N_disk:] = r_gal*np.cos(theta_gal)
 
     # Spot the colonizer
     inds  = np.where(cs_gal==1)[0]
@@ -206,7 +215,7 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge):
 
 # Spherical colonization, infinite probes
 # As each step, all site within the sphere of r=dist is colonized
-def col_inf(galaxy, dist, count, coveringFraction, N_bulge):
+def col_inf(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
     dist *= count
     x_gal = np.zeros_like(galaxy[0])
     y_gal = np.zeros_like(galaxy[1])
@@ -224,13 +233,22 @@ def col_inf(galaxy, dist, count, coveringFraction, N_bulge):
     z_gal[:N_bulge] = r_gal*np.cos(theta_gal)
     
     # Disk (Cylindrical to Cartesian)
-    rho_gal = galaxy[0,N_bulge:]
-    phi_gal_cyl = galaxy[1,N_bulge:]
-    z_gal_cyl = galaxy[2,N_bulge:]
+    rho_gal = galaxy[0,N_bulge:N_disk]
+    phi_gal_cyl = galaxy[1,N_bulge:N_disk]
+    z_gal_cyl = galaxy[2,N_bulge:N_disk]
     
-    x_gal[N_bulge:] = rho_gal*np.cos(phi_gal_cyl)
-    y_gal[N_bulge:] = rho_gal*np.sin(phi_gal_cyl)
-    z_gal[N_bulge:] = z_gal_cyl
+    x_gal[N_bulge:N_disk] = rho_gal*np.cos(phi_gal_cyl)
+    y_gal[N_bulge:N_disk] = rho_gal*np.sin(phi_gal_cyl)
+    z_gal[N_bulge:N_disk] = z_gal_cyl
+
+    # Halo (Spherical to Cartesian)
+    r_gal = galaxy[0,N_bulge+N_disk:]
+    theta_gal = galaxy[1,N_bulge+N_disk:]
+    phi_gal_sph = galaxy[2,N_bulge+N_disk:]
+
+    x_gal[N_bulge+N_disk:] = r_gal*np.sin(theta_gal)*np.cos(phi_gal_sph)
+    y_gal[N_bulge+N_disk:] = r_gal*np.sin(theta_gal)*np.sin(phi_gal_sph)
+    z_gal[N_bulge+N_disk:] = r_gal*np.cos(theta_gal)
 
     # Spot the colonizer
     inds  = np.where(cs_gal==1)[0]
