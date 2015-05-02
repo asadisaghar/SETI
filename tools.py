@@ -144,6 +144,7 @@ def col_inf(galaxy, dist, coveringFraction, N_bulge):
     x_gal = np.zeros_like(galaxy[0])
     y_gal = np.zeros_like(galaxy[1])
     z_gal = np.zeros_like(galaxy[2])
+    cs_gal = galaxy[5]
 
     # Bulge (Spherical to Cartesian)
     r_gal = galaxy[0,:N_bulge]
@@ -165,21 +166,29 @@ def col_inf(galaxy, dist, coveringFraction, N_bulge):
 
     # Spot the colonizer
     ind  = np.where(galaxy[5]==1)[0][0]
-    z_col = z_gal[ind]
-    y_col = y_gal[ind]
+    print "colonizer:"
+    print ind
     x_col = x_gal[ind]              
+    y_col = y_gal[ind]
+    z_col = z_gal[ind]
 
     d = np.sqrt((x_col-x_gal)**2+(y_col-y_gal)**2+(z_col-z_gal)**2)
     d_reachable = np.where(d<=dist)[0]
-    if len(d_reachable) > 10:
-        indcs = d_reachable[np.random.random_integers(0, len(d_reachable)-1, 10)]
-    else:
-        indcs = d_reachable
+#    print "sites at reach:"
 #    print d_reachable
-#    if galaxy[5,d_reachable].any()==0:
-    galaxy[5,indcs]=1
+    # if len(d_reachable) > 1000:
+    #     indcs = d_reachable[np.random.random_integers(0, len(d_reachable)-1, 1000)]
+    # else:
+    indcs = np.where(cs_gal[d_reachable]==0)[0]
+    print "unoccupied sites at rach:"
+    print indcs
+    for indx in indcs:
+        galaxy[5,indx]=1
+        print "occupied:"
+        print indx
 
-    galaxy[4,indcs] *= (1.-coveringFraction)
+        galaxy[4,indx] *= (1.-coveringFraction)
+
     galaxy[5,ind] = -1
 
 #    distances = d[d_reachable]
@@ -307,19 +316,22 @@ def plot_part_galaxy(filename):
     
     cont = galaxy[4]
     cs = galaxy[5]
-    colonized_fraction = np.sum(galaxy[5])/len(galaxy[5])
+    ind = np.where(cs==1)[0][0]
+#    print ind
+    colonized_fraction = np.sum(cs)/len(cs)
 
-    x_col = galaxy[0,np.where(galaxy[5]==1)[0]]*np.cos(galaxy[1,np.where(galaxy[5]==1)[0]])
-    y_col = galaxy[0,np.where(galaxy[5]==1)[0]]*np.sin(galaxy[1,np.where(galaxy[5]==1)[0]])
-    z_col = galaxy[2,np.where(galaxy[5]==1)[0]]
+    x_col = x_gal[ind]
+    y_col = y_gal[ind]
+    z_col = z_gal[ind]
+#    print(x_col, y_col, z_col)
 
     fig = plt.figure(figsize=(20, 10))
     # Face-on
     axfo = plt.subplot(121)
     cmap = plt.cm.jet
     cmap.set_bad('k', 1.)
-#    fo = axfo.scatter(x_gal, y_gal, marker='o', c=np.log10(cont), alpha=0.3, cmap=cmap)
-    fo = axfo.scatter(x_col, y_col, marker='o', c='k', alpha=0.3)
+    fo = axfo.scatter(x_gal, y_gal, marker='o', c=np.log10(cont), alpha=0.3, cmap=cmap)
+    focol = axfo.scatter(x_col, y_col, marker='o', c='k', s=80)
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Y (pc)')
     plt.xlim([-5e4, 5e4])
@@ -332,8 +344,8 @@ def plot_part_galaxy(filename):
     axfo = plt.subplot(122)
     cmap = plt.cm.jet
     cmap.set_bad('k', 1.)
-#    eo = axfo.scatter(x_gal, z_gal, marker='o', c=np.log10(cont), alpha=0.3, cmap=cmap)
-    eo = axfo.scatter(x_col, z_col, marker='o', c='k', alpha=0.3)
+    eo = axfo.scatter(x_gal, z_gal, marker='o', c=np.log10(cont), alpha=0.3, cmap=cmap)
+    eocol = axfo.scatter(x_col, z_col, marker='o', c='k', s=80)
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Z (pc)')
     plt.xlim([-5e4, 5e4])
