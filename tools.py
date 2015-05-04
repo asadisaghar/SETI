@@ -105,9 +105,20 @@ def v_rotational(r, V_opt, R_opt, L2Lstar):
     V2_rot = V2_disk + V2_DM
     return np.sqrt(V2_rot)
 
-# Calculating radial velocity od the disk as a function of r from arXiv:1104.3236v4 (eq. 12) 
-def v_radial(r, R_c):
-    return 1. - np.exp(-r/R_c)
+# Calculating the oscillatory motion of disk particles [along z direction]
+def z_oscillation(galaxy, t, v, N_bulge, N_disk, amp):
+    z = galaxy[2,N_bulge:N_bulge+N_disk]
+    omega = 2.*pi/(25.*pi*1e7*1e6)
+    phase = init_pos(N_disk, 0., 2.*pi, 'uni')
+    galaxy[2,N_bulge:N_bulge+N_disk] = amp*np.cos(omega*t+phase)
+    return galaxy[2,N_bulge:N_bulge+N_disk]
+
+def r_oscillation(galaxy, t, v, N_bulge, N_disk, amp):
+    r = galaxy[0,N_bulge:N_bulge+N_disk]
+    omega = 2.*pi/(25.*pi*1e7*1e6)
+    phase = init_pos(N_disk, 0., 2.*pi, 'uni')
+    galaxy[0,N_bulge:N_bulge+N_disk] = amp*np.cos(omega*t+phase)
+    return galaxy[0,N_bulge:N_bulge+N_disk]
 
 #Initializing disk luminosity distribution
 def init_sersic(I_0, alpha, n_s, r):
