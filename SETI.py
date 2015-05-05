@@ -41,19 +41,19 @@ cSpeed = 3.e5 #[km/s]
 # ===================== #
 N_disk = int(5.e3)  # number of particles in disk (same order as N_gal)
 #dt = np.logspace(-1, 1, num=1)*Myr  # galactic rotation time step
-dt = 1.*Myr2sec #[s] #do NOT use anything longer than 0.1 Myr, or disk rotation is messed up!!
+dt = 0.5*Myr2sec #[s] #do NOT use anything longer than 0.1 Myr, or disk rotation is messed up!!
 #dt_const = np.logspace(-12, 1, num=1)*Myr  # construction time delay
 dt_const = 1e-12*Myr2sec #[s]
 #VC = np.logspace(2, 0, num=1)*cSpeed  # probe velocity
-VC = 1e-1*cSpeed #[km/s]
+VC = 1e-3*cSpeed #[km/s]
 t = 1
-t_f = 1.e3*Myr2sec  # time to stop #[s]
-SingleProbe = True
+t_f = 1e4*Myr2sec  # time to stop #[s]
+SingleProbe = False
 InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 5e3  # radial distance from the galactic center in #[pc]
+start_r = 1e3  # radial distance from the galactic center in #[pc]
 r_err = 100. #[pc]
 # ===================== #
 #  Galactic parameters  #
@@ -215,18 +215,18 @@ i = 0
 #count_tot = 0.
 colonized_fraction = abs(np.sum(galaxy[5]))/len(galaxy[5])
 
-while colonized_fraction < 0.4 and t < t_f:
+while colonized_fraction < 0.7 and t < t_f:
 #    print t
     t = i*dt #[sec]
     # Colonize the galaxy!
     dist = VC * (dt-dt_const)*km2pc #[pc]
 #    with timer("===========COLONIZING!==========="):
     ## how about the case where dt_const is larger?
-#    if SingleProbe:
-#        galaxy, count = tools.col_sing(galaxy, dist, count, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
-##        galaxy[4], galaxy[5], colonized, count, ind_dmin = tools.col_single(galaxy, galaxy_cart, dist, count, coveringFraction)
-#    elif InfiniteProbe:
-#        galaxy, count = tools.col_inf(galaxy, dist, count, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
+    if SingleProbe:
+        galaxy, count = tools.col_sing(galaxy, dist, count, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
+#        galaxy[4], galaxy[5], colonized, count, ind_dmin = tools.col_single(galaxy, galaxy_cart, dist, count, coveringFraction)
+    elif InfiniteProbe:
+        galaxy, count = tools.col_inf(galaxy, dist, count, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
 
     # Evaluate bulge velocities (Spherical)
     sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
@@ -264,7 +264,7 @@ while colonized_fraction < 0.4 and t < t_f:
 
 #    if np.round(colonized_fraction)==0.2 or np.round(colonized_fraction)==0.5:
     print "%.1f Myr \t %.2f colonized"%(t*sec2Myr, colonized_fraction*100.)
-    if (t*sec2Myr)%5 == 0:
+    if (t*sec2Myr)%1 == 0:
         print "%.2f colonized"%(colonized_fraction)
         print "Writing to file..."
         filename = "galaxy_%.2d"%(int(t*sec2Myr))

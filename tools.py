@@ -167,13 +167,13 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
     z_gal[:N_bulge] = r_gal*np.cos(theta_gal)
     
     # Disk (Cylindrical to Cartesian)
-    rho_gal = galaxy[0,N_bulge:N_disk]
-    phi_gal_cyl = galaxy[1,N_bulge:N_disk]
-    z_gal_cyl = galaxy[2,N_bulge:N_disk]
+    rho_gal = galaxy[0,N_bulge:N_bulge+N_disk]
+    phi_gal_cyl = galaxy[1,N_bulge:N_bulge+N_disk]
+    z_gal_cyl = galaxy[2,N_bulge:N_bulge+N_disk]
     
-    x_gal[N_bulge:N_disk] = rho_gal*np.cos(phi_gal_cyl)
-    y_gal[N_bulge:N_disk] = rho_gal*np.sin(phi_gal_cyl)
-    z_gal[N_bulge:N_disk] = z_gal_cyl
+    x_gal[N_bulge:N_bulge+N_disk] = rho_gal*np.cos(phi_gal_cyl)
+    y_gal[N_bulge:N_bulge+N_disk] = rho_gal*np.sin(phi_gal_cyl)
+    z_gal[N_bulge:N_bulge+N_disk] = z_gal_cyl
 
     # Halo (Spherical to Cartesian)
     r_gal = galaxy[0,N_bulge+N_disk:]
@@ -186,39 +186,31 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
 
     # Spot the colonizer
     inds  = np.where(cs_gal==1)[0]
-    print "colonizer(s):"
-    print inds
+#    print "colonizer(s):"
+#    print inds
 
     for ind in inds:
         x_col = x_gal[ind]              
         y_col = y_gal[ind]
         z_col = z_gal[ind]
 
-        # Spot potential colonies
+        # Spot potential colonies (particles that have never been colonized)
         pots = np.where(cs_gal==0)[0] #index
         x_pots = x_gal[pots]
         y_pots = y_gal[pots]
         z_pots = z_gal[pots]    
-        print "potential colony(/ies):(%d)"%(len(pots))
-        print pots
+#        print "%d uncolonized sites left in the galaxy"%(len(pots))
+#        print pots
         d = np.sqrt((x_col-x_pots)**2+(y_col-y_pots)**2+(z_col-z_pots)**2) #distance
-        print d
-        reachables = pots[np.where(d<=dist)] #index
-        if len(reachables)>0:
-            print reachables
-            d_reachables = d[reachables]
-            print d_reachables
-            d_min = np.min(d_reachables) #distance
-            print 'distance to the new colony'
-            print d_min
-            indcs = pots[np.where(d==d_min)]
-            print 'next colonizer:'
-            print indcs      
-#            indcs = d_reachable[np.random.random_integers(0, len(d_reachable)-1, 100)]
-#            print "sites to occupy by %d:(%d from %d)"%(ind, len(indcs), len(d_reachable))
-#            print indcs
-            galaxy[5,indcs] = 1
-            galaxy[4,indcs] *= (1.-coveringFraction)
+#        print d
+        d_min = min(d)
+#        print 'The closest uncolonized site is %f pc away!'%(d_min)
+#        print 'The distance we can reach before the nect time step is %f pc!'%(dist)
+        if d_min <= dist:
+            ind_new = pots[np.where(d==d_min)[0][0]]
+            print ind_new
+            galaxy[5,ind_new] = 1
+            galaxy[4,ind_new] *= (1.-coveringFraction)
             galaxy[5,ind] = -1
             count = 1            
 #        elif len(d_reachable)>0:
