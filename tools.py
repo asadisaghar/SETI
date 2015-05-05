@@ -245,13 +245,13 @@ def col_inf(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
     z_gal[:N_bulge] = r_gal*np.cos(theta_gal)
     
     # Disk (Cylindrical to Cartesian)
-    rho_gal = galaxy[0,N_bulge:N_disk]
-    phi_gal_cyl = galaxy[1,N_bulge:N_disk]
-    z_gal_cyl = galaxy[2,N_bulge:N_disk]
+    rho_gal = galaxy[0,N_bulge:N_bulge+N_disk]
+    phi_gal_cyl = galaxy[1,N_bulge:N_bulge+N_disk]
+    z_gal_cyl = galaxy[2,N_bulge:N_bulge+N_disk]
     
-    x_gal[N_bulge:N_disk] = rho_gal*np.cos(phi_gal_cyl)
-    y_gal[N_bulge:N_disk] = rho_gal*np.sin(phi_gal_cyl)
-    z_gal[N_bulge:N_disk] = z_gal_cyl
+    x_gal[N_bulge:N_bulge+N_disk] = rho_gal*np.cos(phi_gal_cyl)
+    y_gal[N_bulge:N_bulge+N_disk] = rho_gal*np.sin(phi_gal_cyl)
+    z_gal[N_bulge:N_bulge+N_disk] = z_gal_cyl
 
     # Halo (Spherical to Cartesian)
     r_gal = galaxy[0,N_bulge+N_disk:]
