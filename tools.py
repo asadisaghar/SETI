@@ -186,8 +186,8 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
 
     # Spot the colonizer
     inds  = np.where(cs_gal==1)[0]
-#    print "colonizer(s):"
-#    print inds
+    print "colonizer(s):"
+    print inds
 
     for ind in inds:
         x_col = x_gal[ind]              
@@ -195,29 +195,38 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
         z_col = z_gal[ind]
 
         # Spot potential colonies
-        pots = np.where(cs_gal==0)[0]
+        pots = np.where(cs_gal==0)[0] #index
         x_pots = x_gal[pots]
         y_pots = y_gal[pots]
         z_pots = z_gal[pots]    
-#        print "potential colony(/ies):(%d)"%(len(pots))
-#        print pots
-        d = np.sqrt((x_col-x_pots)**2+(y_col-y_pots)**2+(z_col-z_pots)**2)
-#        print d
-        d_reachable = pots[np.where(d<=dist)]
-#        print d_reachable
-        if len(d_reachable)>100:
-            indcs = d_reachable[np.random.random_integers(0, len(d_reachable)-1, 100)]
+        print "potential colony(/ies):(%d)"%(len(pots))
+        print pots
+        d = np.sqrt((x_col-x_pots)**2+(y_col-y_pots)**2+(z_col-z_pots)**2) #distance
+        print d
+        reachables = pots[np.where(d<=dist)] #index
+        if len(reachables)>0:
+            print reachables
+            d_reachables = d[reachables]
+            print d_reachables
+            d_min = np.min(d_reachables) #distance
+            print 'distance to the new colony'
+            print d_min
+            indcs = pots[np.where(d==d_min)]
+            print 'next colonizer:'
+            print indcs      
+#            indcs = d_reachable[np.random.random_integers(0, len(d_reachable)-1, 100)]
 #            print "sites to occupy by %d:(%d from %d)"%(ind, len(indcs), len(d_reachable))
 #            print indcs
-            galaxy[5,indcs] = -1
+            galaxy[5,indcs] = 1
             galaxy[4,indcs] *= (1.-coveringFraction)
-#            galaxy[5,ind] = -1            
-        elif len(d_reachable)>0:
-            indcs = np.where(cs_gal[d_reachable]==0)[0]
+            galaxy[5,ind] = -1
+            count = 1            
+#        elif len(d_reachable)>0:
+#            indcs = np.where(cs_gal[d_reachable]==0)[0]
 #            print "sites to occupy by %d:(%d from %d)"%(ind, len(indcs), len(d_reachable))
 #            print indcs
-            galaxy[5,indcs] = -1
-            galaxy[4,indcs] *= (1.-coveringFraction)
+#            galaxy[5,indcs] = -1
+#            galaxy[4,indcs] *= (1.-coveringFraction)
 #            galaxy[5,ind] = -1            
         else:
             count +=1
