@@ -120,6 +120,20 @@ def r_oscillation(galaxy, t, v, N_bulge, N_disk, amp):
     galaxy[0,N_bulge:N_bulge+N_disk] = amp*np.cos(omega*t+phase)
     return galaxy[0,N_bulge:N_bulge+N_disk]
 
+def r_bulge_oscillation(galaxy, t, v, N_bulge, amp):
+    r = galaxy[0,:N_bulge]
+    omega = 2.*pi/(25.*pi*1e7*1e6)
+    phase = init_pos(N_bulge, 0., 2.*pi, 'uni')
+    galaxy[0,:N_bulge] = amp*np.cos(omega*t+phase)
+    return galaxy[0,:N_bulge]
+
+def r_halo_oscillation(galaxy, t, v, N_bulge, N_disk, N_halo, amp):
+    r = galaxy[0,N_bulge+N_disk:]
+    omega = 2.*pi/(25.*pi*1e7*1e6)
+    phase = init_pos(N_halo, 0., 2.*pi, 'uni')
+    galaxy[0,:N_halo] = amp*np.cos(omega*t+phase)
+    return galaxy[0,N_bulge+N_disk:]
+
 #Initializing disk luminosity distribution
 def init_sersic(I_0, alpha, n_s, r):
     L = I_0*np.exp((-r/alpha)**(1./n_s))
@@ -283,12 +297,13 @@ def col_inf2(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
 #        print "because dist = %f, but d_min=%f"%(dist, min(d))
         if len(cols)>0:
             indcs = pots[cols]
+            print indcs
             galaxy[5,indcs] = -1
             galaxy[4,indcs] *= (1.-coveringFraction)
 #            galaxy[5,ind] = -1
-            count = 1            
+            count += 1            
         else:
-            count +=1
+            count += 1
 
     return galaxy, count
 
@@ -355,7 +370,7 @@ def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
 #    plt.show()
 
 
-def plot_part_galaxy(filename, N_bulge, N_disk):
+def plot_part_galaxy(filename, N_bulge, N_disk, mode='k'):
     tmp = filename.split('.npy')
     t = tmp[0].split('_')[1]
     galaxy = np.load('%s'%(filename))
@@ -405,10 +420,12 @@ def plot_part_galaxy(filename, N_bulge, N_disk):
     fig = plt.figure(figsize=(20, 10))
     # Face-on
     axfo = plt.subplot(121)
-    cmap = plt.cm.spectral
+    cmap = plt.cm.spectral_r
     cmap.set_bad('k', 1.)
     fo = axfo.scatter(x_gal, y_gal, marker='o', c=(cont), edgecolor='None', alpha=0.4, cmap=cmap)
-    focol = axfo.scatter(x_col, y_col, marker='o', c='k', s=10)
+    if mode == 'k':
+        focol = axfo.scatter(x_col, y_col, marker='o', c='k', s=10)
+
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Y (pc)')
     plt.xlim([-5e4, 5e4])
@@ -419,10 +436,12 @@ def plot_part_galaxy(filename, N_bulge, N_disk):
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
     #Edge-on
     axfo = plt.subplot(122)
-    cmap = plt.cm.spectral
+    cmap = plt.cm.spectral_r
     cmap.set_bad('k', 1.)
     eo = axfo.scatter(x_gal, z_gal, marker='o', c=(cont), edgecolor='None', alpha=0.3, cmap=cmap)
-    eocol = axfo.scatter(x_col, z_col, marker='o', c='k', s=10)
+    if mode == 'k':
+        eocol = axfo.scatter(x_col, z_col, marker='o', c='k', s=10)
+    
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Z (pc)')
     plt.xlim([-5e4, 5e4])
@@ -494,8 +513,8 @@ def plot_cont_galaxy(filename, N_bulge, N_disk, bin_no=100): #If you have enough
     axfo = plt.subplot(121)
     cmap = plt.cm.spectral_r
     cmap.set_bad('w', 1.)
-    N, xedges, yedges = binned_statistic_2d(x_gal, y_gal, cont, 'count', bins=bin_no)
-    plt.imshow(np.log10(N.T), origin='lower',
+    N, xedges, yedges = binned_statistic_2d(x_gal*1e-3, y_gal*1e-3, cont, 'sum', bins=bin_no)
+    plt.imshow((N.T), origin='lower',
                extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
                aspect='equal', interpolation='nearest', cmap=cmap)
     plt.xlabel(r'X (pc)')
@@ -515,7 +534,7 @@ def plot_cont_galaxy(filename, N_bulge, N_disk, bin_no=100): #If you have enough
     cmap = plt.cm.spectral_r
     cmap.set_bad('w', 1.)
     N, xedges, zedges=binned_statistic_2d(x_gal, z_gal, cont, 'sum', bins=bin_no)
-    plt.imshow(np.log10(N.T), origin='lower',
+    plt.imshow((N.T), origin='lower',
                extent=[xedges[0], xedges[-1], zedges[0], zedges[-1]],
                aspect='equal', interpolation='nearest', cmap=cmap)
 
@@ -534,6 +553,60 @@ def plot_cont_galaxy(filename, N_bulge, N_disk, bin_no=100): #If you have enough
     plt.show()
     return galaxy
         
+def plot_voronoi(filename, N_bulge, N_disk):
+    from scipy.spatial import Voronoi, voronoi_plot_2d
+    tmp = filename.split('.npy')
+    t = tmp[0].split('_')[1]
+    galaxy = np.load('%s'%(filename))
+    
+    x_gal = np.zeros_like(galaxy[0])
+    y_gal = np.zeros_like(galaxy[1])
+    z_gal = np.zeros_like(galaxy[2])
+    cs_gal = galaxy[5]
+    cont = galaxy[4]
+    
+    # Bulge (Spherical to Cartesian)
+    r_gal = galaxy[0,:N_bulge]
+    theta_gal = galaxy[1,:N_bulge]
+    phi_gal_sph = galaxy[2,:N_bulge]
+
+    x_gal[:N_bulge] = r_gal*np.sin(theta_gal)*np.cos(phi_gal_sph)
+    y_gal[:N_bulge] = r_gal*np.sin(theta_gal)*np.sin(phi_gal_sph)
+    z_gal[:N_bulge] = r_gal*np.cos(theta_gal)
+    
+    # Disk (Cylindrical to Cartesian)
+    rho_gal = galaxy[0,N_bulge:N_bulge+N_disk]
+    phi_gal_cyl = galaxy[1,N_bulge:N_bulge+N_disk]
+    z_gal_cyl = galaxy[2,N_bulge:N_bulge+N_disk]
+    
+    x_gal[N_bulge:N_bulge+N_disk] = rho_gal*np.cos(phi_gal_cyl)
+    y_gal[N_bulge:N_bulge+N_disk] = rho_gal*np.sin(phi_gal_cyl)
+    z_gal[N_bulge:N_bulge+N_disk] = z_gal_cyl
+
+    # Halo (Spherical to Cartesian)
+    r_gal = galaxy[0,N_bulge+N_disk:]
+    theta_gal = galaxy[1,N_bulge+N_disk:]
+    phi_gal_sph = galaxy[2,N_bulge+N_disk:]
+
+    x_gal[N_bulge+N_disk:] = r_gal*np.sin(theta_gal)*np.cos(phi_gal_sph)
+    y_gal[N_bulge+N_disk:] = r_gal*np.sin(theta_gal)*np.sin(phi_gal_sph)
+    z_gal[N_bulge+N_disk:] = r_gal*np.cos(theta_gal)
+    
+    # Spot the colonizer
+    inds  = np.where(cs_gal!=0)[0]
+
+    x_col = x_gal[inds]              
+    y_col = y_gal[inds]
+    z_col = z_gal[inds]
+
+    colonized_fraction = abs(np.sum(cs_gal)/len(cs_gal))    
+
+    xy_gal=np.zeros((len(x_gal), 2))
+    xy_gal[:,0]=x_gal
+    xy_gal[:,1]=y_gal
+    vor=Voronoi(xy_gal)
+
+    return galaxy
 # ==================== #
 #        TESTING       #
 # ==================== #
