@@ -92,7 +92,7 @@ def init_norm(loc, scale, size):
     return init
 
 # Calculating velocity as a function of r to force the rotation curve (A)
-def v_rotational(r, V_opt, R_opt, L2Lstar):
+def v_rotational_disk(r, V_opt, R_opt, L2Lstar):
     V2_opt = np.power(V_opt, 2)
     x = r/R_opt
     a = 1.5*np.power(L2Lstar, 1.5)
@@ -104,6 +104,10 @@ def v_rotational(r, V_opt, R_opt, L2Lstar):
 
     V2_rot = V2_disk + V2_DM
     return np.sqrt(V2_rot)
+
+def v_rotational_unisphere(r, density):
+	V_rot = np.sqrt(4./3.*pi*Gconst*density)*r
+	return V_rot
 
 # Calculating the oscillatory motion of disk particles [along z direction]
 def z_oscillation(galaxy, t, v, N_bulge, N_disk, amp):
@@ -553,60 +557,6 @@ def plot_cont_galaxy(filename, N_bulge, N_disk, bin_no=100): #If you have enough
     plt.show()
     return galaxy
         
-def plot_voronoi(filename, N_bulge, N_disk):
-    from scipy.spatial import Voronoi, voronoi_plot_2d
-    tmp = filename.split('.npy')
-    t = tmp[0].split('_')[1]
-    galaxy = np.load('%s'%(filename))
-    
-    x_gal = np.zeros_like(galaxy[0])
-    y_gal = np.zeros_like(galaxy[1])
-    z_gal = np.zeros_like(galaxy[2])
-    cs_gal = galaxy[5]
-    cont = galaxy[4]
-    
-    # Bulge (Spherical to Cartesian)
-    r_gal = galaxy[0,:N_bulge]
-    theta_gal = galaxy[1,:N_bulge]
-    phi_gal_sph = galaxy[2,:N_bulge]
-
-    x_gal[:N_bulge] = r_gal*np.sin(theta_gal)*np.cos(phi_gal_sph)
-    y_gal[:N_bulge] = r_gal*np.sin(theta_gal)*np.sin(phi_gal_sph)
-    z_gal[:N_bulge] = r_gal*np.cos(theta_gal)
-    
-    # Disk (Cylindrical to Cartesian)
-    rho_gal = galaxy[0,N_bulge:N_bulge+N_disk]
-    phi_gal_cyl = galaxy[1,N_bulge:N_bulge+N_disk]
-    z_gal_cyl = galaxy[2,N_bulge:N_bulge+N_disk]
-    
-    x_gal[N_bulge:N_bulge+N_disk] = rho_gal*np.cos(phi_gal_cyl)
-    y_gal[N_bulge:N_bulge+N_disk] = rho_gal*np.sin(phi_gal_cyl)
-    z_gal[N_bulge:N_bulge+N_disk] = z_gal_cyl
-
-    # Halo (Spherical to Cartesian)
-    r_gal = galaxy[0,N_bulge+N_disk:]
-    theta_gal = galaxy[1,N_bulge+N_disk:]
-    phi_gal_sph = galaxy[2,N_bulge+N_disk:]
-
-    x_gal[N_bulge+N_disk:] = r_gal*np.sin(theta_gal)*np.cos(phi_gal_sph)
-    y_gal[N_bulge+N_disk:] = r_gal*np.sin(theta_gal)*np.sin(phi_gal_sph)
-    z_gal[N_bulge+N_disk:] = r_gal*np.cos(theta_gal)
-    
-    # Spot the colonizer
-    inds  = np.where(cs_gal!=0)[0]
-
-    x_col = x_gal[inds]              
-    y_col = y_gal[inds]
-    z_col = z_gal[inds]
-
-    colonized_fraction = abs(np.sum(cs_gal)/len(cs_gal))    
-
-    xy_gal=np.zeros((len(x_gal), 2))
-    xy_gal[:,0]=x_gal
-    xy_gal[:,1]=y_gal
-    vor=Voronoi(xy_gal)
-
-    return galaxy
 # ==================== #
 #        TESTING       #
 # ==================== #
