@@ -1,3 +1,4 @@
+
 import random
 import cProfile
 from math import *
@@ -135,7 +136,7 @@ def r_halo_oscillation(galaxy, t, v, N_bulge, N_disk, N_halo, amp):
     r = galaxy[0,N_bulge+N_disk:]
     omega = 2.*pi/(25.*pi*1e7*1e6)
     phase = init_pos(N_halo, 0., 2.*pi, 'uni')
-    galaxy[0,:N_halo] = amp*np.cos(omega*t+phase)
+    galaxy[0,N_bulge+N_disk:] = amp*np.cos(omega*t+phase)
     return galaxy[0,N_bulge+N_disk:]
 
 #Initializing disk luminosity distribution
@@ -207,9 +208,7 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
 
     # Spot the colonizer
     inds  = np.where(cs_gal==1)[0]
-#    print "colonizer(s):"
-#    print inds
-
+    captured = 0
     for ind in inds:
         x_col = x_gal[ind]              
         y_col = y_gal[ind]
@@ -220,22 +219,18 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
         x_pots = x_gal[pots]
         y_pots = y_gal[pots]
         z_pots = z_gal[pots]    
-#        print "%d uncolonized sites left in the galaxy"%(len(pots))
-#        print pots
         d = np.sqrt((x_col-x_pots)**2+(y_col-y_pots)**2+(z_col-z_pots)**2) #distance
-#        print d
         d_min = min(d)
-#        print 'The closest uncolonized site is %f pc away!'%(d_min)
-#        print 'The distance we can reach before the nect time step is %f pc!'%(dist)
         if d_min <= dist:
             ind_new = pots[np.where(d==d_min)[0][0]]
-            print ind_new
             galaxy[5,ind_new] = 1
             galaxy[4,ind_new] *= (1.-coveringFraction)
-            galaxy[5,ind] = -1
-            count = 1            
-        else:
-            count +=1
+            captured += len(cols)
+
+    if captured>0:
+        count = 1
+    else:
+        count += 1
 
     return galaxy, count
 
@@ -278,36 +273,29 @@ def col_inf2(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
 
     # Spot the colonizer
     inds  = np.where(cs_gal==1)[0]
-#    print "colonizer(s):"
-#    print inds
-
+    captured = 0
     for ind in inds:
         x_col = x_gal[ind]              
         y_col = y_gal[ind]
         z_col = z_gal[ind]
-
         # Spot potential colonies (particles that have never been colonized)
         pots = np.where(cs_gal==0)[0] #index
         x_pots = x_gal[pots]
         y_pots = y_gal[pots]
         z_pots = z_gal[pots]    
-#        print "%d uncolonized sites left in the galaxy"%(len(pots))
-#        print pots
         d = np.sqrt((x_col-x_pots)**2+(y_col-y_pots)**2+(z_col-z_pots)**2) #distance
-#        print d
         cols = np.where(d<=dist)[0]
-#        print "of which we can colonize these:"
-#        print cols
-#        print "because dist = %f, but d_min=%f"%(dist, min(d))
         if len(cols)>0:
             indcs = pots[cols]
-            print indcs
-            galaxy[5,indcs] = -1
+            galaxy[5,indcs] = 1
             galaxy[4,indcs] *= (1.-coveringFraction)
-#            galaxy[5,ind] = -1
-            count += 1            
-        else:
-            count += 1
+            galaxy[5,ind] = -1
+            captured += len(cols)
+
+    if captured>0:
+        count = 1
+    else:
+        count += 1
 
     return galaxy, count
 
@@ -374,7 +362,7 @@ def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
 #    plt.show()
 
 
-def plot_part_galaxy(filename, N_bulge, N_disk, mode='k'):
+def plot_part_galaxy(filename, N_bulge, N_disk, mode):
     tmp = filename.split('.npy')
     t = tmp[0].split('_')[1]
     galaxy = np.load('%s'%(filename))
@@ -425,35 +413,49 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode='k'):
     # Face-on
     axfo = plt.subplot(121)
     cmap = plt.cm.spectral_r
-    cmap.set_bad('k', 1.)
-    fo = axfo.scatter(x_gal, y_gal, marker='o', c=(cont), edgecolor='None', alpha=0.4, cmap=cmap)
+#    cmap.set_bad('w', 0.)
     if mode == 'k':
-        focol = axfo.scatter(x_col, y_col, marker='o', c='k', s=10)
-
+        fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.1, cmap=cmap, s=30)
+        focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='k', alpha=0.3, s=5)
+    elif mode == 'w':
+        fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
+        focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
+    elif mode == 'n':
+        fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=1.0, cmap=cmap)
+        focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='None', edgecolor='None')
+    
     plt.xlabel(r'X (pc)')
     plt.ylabel(r'Y (pc)')
-    plt.xlim([-5e4, 5e4])
-    plt.ylim([-5e4, 5e4])
-    plt.title("time = %s Myr"%(t))
+    plt.xlim([-3e1, 3e1])
+    plt.ylim([-3e1, 3e1])
+#    print ("time = %s Myr"%(t/100.))
+#    plt.title("time = %s Myr"%(t))
 #    cb = plt.colorbar(pad=0.2,
 #                      orientation='horizontal')
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
     #Edge-on
     axfo = plt.subplot(122)
     cmap = plt.cm.spectral_r
-    cmap.set_bad('k', 1.)
-    eo = axfo.scatter(x_gal, z_gal, marker='o', c=(cont), edgecolor='None', alpha=0.3, cmap=cmap)
+#    cmap.set_bad('w', 0.)
     if mode == 'k':
-        eocol = axfo.scatter(x_col, z_col, marker='o', c='k', s=10)
+        eo = axfo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.1, cmap=cmap, s=30)
+        eocol = axfo.scatter(x_col/1e3, z_col/1e3, marker='o', c='k', alpha=0.3, s=5)
+    elif mode == 'w':
+        eo = axfo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
+        eocol = axfo.scatter(x_col/1e3, z_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
+    elif mode == 'n':
+        eo = axfo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=1.0, cmap=cmap)
+        eocol = axfo.scatter(x_col/1e3, z_col/1e3, marker='o', c='None', edgecolor='None')
     
-    plt.xlabel(r'X (pc)')
-    plt.ylabel(r'Z (pc)')
-    plt.xlim([-5e4, 5e4])
-    plt.ylim([-5e4, 5e4])
+    plt.xlabel(r'X (kpc)')
+    plt.ylabel(r'Z (kpc)')
+    plt.xlim([-3e1, 3e1])
+    plt.ylim([-3e1, 3e1])
 #    cb = plt.colorbar(pad=0.2,
 #                      orientation='horizontal')
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-    plt.title("Colonized fraction = %.2f"%(colonized_fraction))
+#    plt.title("Colonized fraction = %.2f"%(colonized_fraction))
+    print ("Colonized fraction = %.2f"%(colonized_fraction))
     plt.savefig("%s.png"%(filename))
 #    plt.show()
 
@@ -470,7 +472,7 @@ def plot_cont_galaxy(filename, N_bulge, N_disk, bin_no=100): #If you have enough
     y_gal = np.zeros_like(galaxy[1])
     z_gal = np.zeros_like(galaxy[2])
     cs_gal = galaxy[5]
-    cont = galaxy[4]
+    cont = galaxy[4]/np.sum(galaxy[4])
     
     # Bulge (Spherical to Cartesian)
     r_gal = galaxy[0,:N_bulge]
@@ -516,47 +518,103 @@ def plot_cont_galaxy(filename, N_bulge, N_disk, bin_no=100): #If you have enough
     # Face-on
     axfo = plt.subplot(121)
     cmap = plt.cm.spectral_r
-    cmap.set_bad('w', 1.)
+    cmap.set_bad('w', 0.)
     N, xedges, yedges = binned_statistic_2d(x_gal*1e-3, y_gal*1e-3, cont, 'sum', bins=bin_no)
     plt.imshow((N.T), origin='lower',
                extent=[xedges[0], xedges[-1], yedges[0], yedges[-1]],
                aspect='equal', interpolation='nearest', cmap=cmap)
-    plt.xlabel(r'X (pc)')
-    plt.ylabel(r'Y (pc)')
-    plt.xlim([-5e4, 5e4])
-    plt.ylim([-5e4, 5e4])
+    plt.xlabel(r'X (kpc)')
+    plt.ylabel(r'Y (kpc)')
+    plt.xlim([-1e1, 1e1])
+    plt.ylim([-1e1, 1e1])
     cb = plt.colorbar(pad=0.2,
                       orientation='horizontal')
-    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-    clim_min = np.min(np.log10(cont))
-    clim_max = np.max(np.log10(cont)) 
+    cb.set_label(r'$\mathrm{log(L/L_{total})}$')
+    clim_min = min(cont)
+    clim_max = max(cont) 
     plt.title("time = %s Myr"%(t))
 #    plt.clim(clim_min, clim_max)
 
     # Edge-on
     axeo = plt.subplot(122)
     cmap = plt.cm.spectral_r
-    cmap.set_bad('w', 1.)
-    N, xedges, zedges=binned_statistic_2d(x_gal, z_gal, cont, 'sum', bins=bin_no)
+    cmap.set_bad('w', 0.)
+    N, xedges, zedges=binned_statistic_2d(x_gal*1e-3, z_gal*1e-3, cont, 'sum', bins=bin_no)
     plt.imshow((N.T), origin='lower',
                extent=[xedges[0], xedges[-1], zedges[0], zedges[-1]],
                aspect='equal', interpolation='nearest', cmap=cmap)
 
-    plt.xlabel(r'X (pc)')
-    plt.ylabel(r'Z (pc)')
-    plt.xlim([-1e4, 1e4])
-    plt.ylim([-1e4, 1e4])
+    plt.xlabel(r'X (kpc)')
+    plt.ylabel(r'Z (kpc)')
+    plt.xlim([-1e1, 1e1])
+    plt.ylim([-1e1, 1e1])
     cb = plt.colorbar(pad=0.2,
                       orientation='horizontal')
-    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-    clim_min = np.min(np.log10(cont))
-    clim_max = np.max(np.log10(cont)) 
+    cb.set_label(r'$\mathrm{log(L/L_{total})}$')
+    clim_min = min(cont)
+    clim_max = max(cont) 
+    print ("Colonized fraction = %.2f"%(colonized_fraction))
 #    plt.clim(clim_min, clim_max)
-    plt.title("Colonized fraction = %.2f"%(abs(colonized_fraction)))
+#    plt.title("Colonized fraction = %.2f"%(abs(colonized_fraction)))
     plt.savefig("%s.png"%(filename))
-    plt.show()
+#    plt.show()
     return galaxy
         
+
+def plot_profile(filename, N_bulge, N_disk):
+    tmp = filename.split('.npy')
+    t = float(tmp[0].split('_')[1])
+    galaxy = np.load('%s'%(filename))
+
+    radius = galaxy[0]/1e3
+    luminosity = galaxy[4]
+    col = galaxy[5]
+    N_gal = len(col)
+
+    fig = plt.figure(figsize=(10,10))
+
+#    axb = fig.add_subplot(231)
+#    axb.plot((radius[:N_bulge]), (luminosity[:N_bulge]), '.y')
+#    plt.title("Bulge")
+
+    axd = fig.add_subplot(222)
+    axd.plot((radius[N_bulge:N_bulge+N_disk]), np.log10(abs(luminosity[N_bulge:N_bulge+N_disk])), '.c')
+    plt.xlim([0, 40])
+    plt.ylim([0, 11])
+    plt.title("Disk")
+
+#    axh = fig.add_subplot(233)
+#    axh.plot((radius[N_bulge+N_disk:]), (luminosity[N_bulge+N_disk:]), '.g')
+#    plt.title("Halo")
+
+    axt = fig.add_subplot(223)
+    axt.hist((luminosity/1e10), bins=10, color='g', normed=True)
+    plt.title("Luminosity")
+    plt.xlim([0, 2])
+    plt.ylim([0, 2])
+
+    axt = fig.add_subplot(224)
+    axt.hist(((luminosity/1e10)), bins=10, color='m', cumulative=True, normed=True)
+    plt.title("Cumulative Luminosity")
+    plt.xlim([0, 2])
+    plt.ylim([0, 2])
+
+    axcol = fig.add_subplot(221)
+    axcol.hist(col, bins=2, color='y', normed=True)
+    plt.title("Colonization")
+    plt.ylim([0, 2])
+#    axcolp = fig.add_subplot(236)
+#    axcolp.plot(radius, col, '.m')
+#    plt.title("Col. Profile")
+    
+    colonized_fraction = abs(np.sum(col)/N_gal)
+    print ("Colonized fraction = %.2f"%(colonized_fraction))
+
+    plt.suptitle("time = %.2f Myr"%(t/100.))
+    plt.savefig("%s.png"%(filename))
+#    plt.show()                                                                                                                    
+    return galaxy
+
 # ==================== #
 #        TESTING       #
 # ==================== #
