@@ -40,7 +40,7 @@ cSpeed = 3.e5 #[km/s]
 #        HANDLES        #
 # ===================== #
 N_disk = int(1.e4)  # number of particles in disk (same order as N_gal)
-dt_log = 0.5*Myr2sec #[s] time step to dump the array into a file
+dt_log = 1.*Myr2sec #[s] time step to dump the array into a file
 dt_r = 1.*Myr2sec #[s] time step to rotate the galaxy
 dt_c = 1e-2*Myr2sec #[s] time step to update the colonization
 dt_const = 1e-12*Myr2sec #[s]
@@ -73,7 +73,7 @@ M_disk = 6.e10  # disk mass #[M_solar]
 mean_rho_disk = 30. #[km/s]
 sigma_rho_disk = 30.  #[km/s]
 mean_z_disk = 15.  #[km/s]
-sigma_z_disk = 15.  #[km/s]
+nsigma_z_disk = 15.  #[km/s]
 
 # BULGE
 N_bulge = int(0.33*N_disk)
@@ -267,16 +267,16 @@ while t < t_f:
     i += 1
     col_parts = len(np.where(galaxy[5]!=0)[0])
     print "%.3f Myr \t %.5f %%colonized"%(t*sec2Myr, colonized_fraction*100.)
-    if abs(colonized_fraction-0.50) >= 0.05:# and (t*sec2Myr)%dt_log == 0:
+    if abs(colonized_fraction-0.50) >= 0.05 and i%(int(dt_log/dt_c)) == 0:
         print "%.2f colonized"%(colonized_fraction)
         print "Writing to file..."
         filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*1000))
         np.save(filename, galaxy)
-#    elif int(t*sec2Myr)%300 == 0:
-#        print "%.2f colonized"%(colonized_fraction)
-#        print "Writing to file..."
-#        filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*1000))
-#        np.save(filename, galaxy)
+    elif i%(int(300.*Myr2sec/dt_c)) == 0:
+        print "%.2f colonized"%(colonized_fraction)
+        print "Writing to file..."
+        filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*1000))
+        np.save(filename, galaxy)
 
 print "%.2f colonized"%(colonized_fraction)
 print "Writing to file..."
