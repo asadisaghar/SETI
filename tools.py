@@ -609,7 +609,7 @@ def plot_profile(filename, N_bulge, N_disk):
     colonized_fraction = abs(np.sum(col)/N_gal)
     print ("Colonized fraction = %.2f"%(colonized_fraction))
 
-    plt.suptitle("time = %.2f Myr"%(t/100.))
+    plt.suptitle("time = %.2f Myr"%(t/1000.))
     plt.savefig("%s.png"%(filename))
 #    plt.show()                                                                                                                    
     return galaxy

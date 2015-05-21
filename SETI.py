@@ -39,12 +39,12 @@ cSpeed = 3.e5 #[km/s]
 # ===================== #
 #        HANDLES        #
 # ===================== #
-N_disk = int(1.e5)  # number of particles in disk (same order as N_gal)
-dt_log = 5.*Myr2sec #[s] time step to dump the array into a file
-dt_r = 10.*Myr2sec #[s] time step to rotate the galaxy
-dt_c = 1e-3*Myr2sec #[s] time step to update the colonization
+N_disk = int(1.e4)  # number of particles in disk (same order as N_gal)
+dt_log = 0.5*Myr2sec #[s] time step to dump the array into a file
+dt_r = 1.*Myr2sec #[s] time step to rotate the galaxy
+dt_c = 1e-2*Myr2sec #[s] time step to update the colonization
 dt_const = 1e-12*Myr2sec #[s]
-VC = 1e-1*cSpeed #[km/s]
+VC = 1e-2*cSpeed #[km/s]
 t = 0
 t_f = 1.5e3*Myr2sec  # time to stop #[s]
 SingleProbe = False
@@ -53,7 +53,7 @@ InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 1e3  # radial distance from the galactic center in #[pc]
+start_r = 0e3  # radial distance from the galactic center in #[pc]
 loc = 1
 r_err = 100. #[pc]
 # ===================== #
@@ -267,22 +267,19 @@ while t < t_f:
     i += 1
     col_parts = len(np.where(galaxy[5]!=0)[0])
     print "%.3f Myr \t %.5f %%colonized"%(t*sec2Myr, colonized_fraction*100.)
-    if abs(colonized_fraction-0.50) >= 0.05:
-        if (t*sec2Myr)%dt_log == 0:
-            print "%.2f colonized"%(colonized_fraction)
-            print "Writing to file..."
-            filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*100))
-            np.save(filename, galaxy)
-
-    else:
-        if int(t*sec2Myr)%100 == 0:
-            print "%.2f colonized"%(colonized_fraction)
-            print "Writing to file..."
-            filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*100))
-            np.save(filename, galaxy)
+    if abs(colonized_fraction-0.50) >= 0.05:# and (t*sec2Myr)%dt_log == 0:
+        print "%.2f colonized"%(colonized_fraction)
+        print "Writing to file..."
+        filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*1000))
+        np.save(filename, galaxy)
+#    elif int(t*sec2Myr)%300 == 0:
+#        print "%.2f colonized"%(colonized_fraction)
+#        print "Writing to file..."
+#        filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*1000))
+#        np.save(filename, galaxy)
 
 print "%.2f colonized"%(colonized_fraction)
 print "Writing to file..."
-filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*100))
+filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*1000))
 np.save(filename, galaxy)
 #cProfile.run("update()", "stats")
