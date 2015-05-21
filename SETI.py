@@ -269,7 +269,7 @@ while t < t_f:
 #    if np.round(colonized_fraction)==0.2 or np.round(colonized_fraction)==0.5:
     print "%.2f Myr \t %.2f colonized"%(t*sec2Myr, colonized_fraction*100.)
     if abs(colonized_fraction-0.50) >= 0.05:
-        if int(t*sec2Myr)%0.01 == 0:
+        if int(t*sec2Myr)%0.1 == 0:
             print "%.2f colonized"%(colonized_fraction)
             print "Writing to file..."
             filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*100))
