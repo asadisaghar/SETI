@@ -231,7 +231,7 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
     else:
         count += 1
 
-    return galaxy, count
+    return galaxy, count, dist, captured
 
 # Spherical colonization, infinite probes
 # As each step, all site within the sphere of r=dist is colonized
@@ -290,15 +290,13 @@ def col_inf2(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
             galaxy[4,indcs] *= (1.-coveringFraction)
 #            galaxy[5,ind] = -1
             captured += len(cols)
-  
-#        print ind
-#        print captured
+
     if captured>0:
         count = 1
     else:
         count += 1
 
-    return galaxy, count
+    return galaxy, count, dist, captured
 
 def calculate_reachable(galaxy, dist, ind):
     # spot the colonizer!

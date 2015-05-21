@@ -39,14 +39,13 @@ cSpeed = 3.e5 #[km/s]
 # ===================== #
 #        HANDLES        #
 # ===================== #
-N_disk = int(5.e4)  # number of particles in disk (same order as N_gal)
-#dt = np.logspace(-1, 1, num=1)*Myr  # galactic rotation time step
-dt = 0.01*Myr2sec #[s] #do NOT use anything longer than 0.1 Myr, or disk rotation is messed up!!
-#dt_const = np.logspace(-12, 1, num=1)*Myr  # construction time delay
+N_disk = int(1.e5)  # number of particles in disk (same order as N_gal)
+dt_log = 5.*Myr2sec #[s] time step to dump the array into a file
+dt_r = 10.*Myr2sec #[s] time step to rotate the galaxy
+dt_c = 1e-3*Myr2sec #[s] time step to update the colonization
 dt_const = 1e-12*Myr2sec #[s]
-#VC = np.logspace(2, 0, num=1)*cSpeed  # probe velocity
-VC = 1e-3*cSpeed #[km/s]
-t = 1
+VC = 1e-1*cSpeed #[km/s]
+t = 0
 t_f = 1.5e3*Myr2sec  # time to stop #[s]
 SingleProbe = False
 probe = "inf"
@@ -213,63 +212,63 @@ galaxy[7] = V3_gal
 # ============== #
 count = 1
 i = 0
+captured_total=0
 #col_tot = 0.
 #count_tot = 0.
-colonized_fraction = abs(np.sum(galaxy[5]))/len(galaxy[5])
-
+#colonized_fraction = abs(np.sum(galaxy[5]))/len(galaxy[5])
+colonized_fraction = (captured_total*1.0)/(N_gal)
 while t < t_f:
 #    print t
-    t = i*dt #[sec]
+    t = i*dt_c #[sec]
     # Colonize the galaxy!
-    dist = VC * (dt-dt_const)*km2pc #[pc]
+    dist = VC * (dt_c-dt_const)*km2pc #[pc]
 #    with timer("===========COLONIZING!==========="):
-    ## how about the case where dt_const is larger?
-    if abs(colonized_fraction-0.50) >= 0.05:
+    if abs(colonized_fraction-0.50) >= 0.05 and (t*sec2Myr)%dt_r != 0:
+#        print 'pre-count: %d pre_dist: %.5f'%(count, dist)
         if SingleProbe:
-            galaxy, count = tools.col_sing(galaxy, dist, count, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
-    #        galaxy[4], galaxy[5], colonized, count, ind_dmin = tools.col_single(galaxy, galaxy_cart, dist, count, coveringFraction)
+            galaxy, count, post_dist, captured = tools.col_sing(galaxy, dist, count, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
         elif InfiniteProbe:
-            print 'pre-count: %d'%(count)
-            galaxy, count = tools.col_inf2(galaxy, dist, count, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
-            print 'post-count: %d'%(count)
+            galaxy, count, post_dist, captured = tools.col_inf2(galaxy, dist, count, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
+            captured_total += captured
+#        print 'post-count: %d post_dist: %.5f'%(count, post_dist)
+    elif (t*sec2Myr)%dt_r == 0:
+        # Evaluate bulge velocities (Spherical)
+        galaxy[3,:N_bulge] = tools.v_rotational_unisphere(galaxy[0,:N_bulge], rho_bulge) #[km/s]
+        sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
+        galaxy[7,:N_bulge] = sign*np.random.normal(0.0, sigma_bulge, N_bulge) #[km/s]
+        # Rotate the bulge
+        galaxy[1,:N_bulge] += galaxy[3,:N_bulge]*km2pc*dt_r/galaxy[0,:N_bulge] # v_theta = r*dtheta/dt  #[pc]
+        galaxy[2,:N_bulge] += galaxy[7,:N_bulge]*km2pc*dt_r/galaxy[0,:N_bulge]*np.sin(galaxy[2,:N_bulge]) # v_phi = r*sin(theta)*dphi/dt #[pc]
+        # Oscillate bulge particles (around original r positions only)
+        galaxy[0,:N_bulge] = tools.r_bulge_oscillation(galaxy, t, mean_bulge, N_bulge, R_bulge)   
+        
+        # Evaluate disk velocities (Cylindrical)
+        galaxy[3,N_bulge:N_disk+N_bulge] = tools.v_rotational_disk(galaxy[0,N_bulge:N_disk+N_bulge]*pc2km, V_opt, R_opt*pc2km, L2Lstar) #[km/s]
+        sign = np.round(np.random.uniform(0,1,N_disk))*2.-1
+        galaxy[3,N_bulge:N_bulge+N_disk] += sign*np.random.normal(0.0, sigma_rho_disk, N_disk) #[km/s]
+        # Rotate the disk
+        galaxy[1,N_bulge:N_disk+N_bulge] += galaxy[3,N_bulge:N_disk+N_bulge]*km2pc*dt_r/galaxy[0,N_bulge:N_disk+N_bulge] # v_phi = rho*dphi/dt #[pc]
+        # Oscillate disk particles (around original rho and z positions only)
+        galaxy[0,N_bulge:N_disk+N_bulge] = rho_disk + tools.r_oscillation(galaxy, t, mean_rho_disk, N_bulge, N_disk, amp=h_z_thick)
+        galaxy[2,N_bulge:N_disk+N_bulge] = tools.z_oscillation(galaxy, t, mean_z_disk, N_bulge, N_disk, amp=z_disk)    
 
-    # Evaluate bulge velocities (Spherical)
-    galaxy[3,:N_bulge] = tools.v_rotational_unisphere(galaxy[0,:N_bulge], rho_bulge) #[km/s]
-    sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
-    galaxy[7,:N_bulge] = sign*np.random.normal(0.0, sigma_bulge, N_bulge) #[km/s]
-    # Rotate the bulge
-    galaxy[1,:N_bulge] += galaxy[3,:N_bulge]*km2pc*dt/galaxy[0,:N_bulge] # v_theta = r*dtheta/dt  #[pc]
-    galaxy[2,:N_bulge] += galaxy[7,:N_bulge]*km2pc*dt/galaxy[0,:N_bulge]*np.sin(galaxy[2,:N_bulge]) # v_phi = r*sin(theta)*dphi/dt #[pc]
-    # Oscillate bulge particles (around original r positions only)
-    galaxy[0,:N_bulge] = tools.r_bulge_oscillation(galaxy, t, mean_bulge, N_bulge, R_bulge)   
-     
-    # Evaluate disk velocities (Cylindrical)
-    galaxy[3,N_bulge:N_disk+N_bulge] = tools.v_rotational_disk(galaxy[0,N_bulge:N_disk+N_bulge]*pc2km, V_opt, R_opt*pc2km, L2Lstar) #[km/s]
-    sign = np.round(np.random.uniform(0,1,N_disk))*2.-1
-    galaxy[3,N_bulge:N_bulge+N_disk] += sign*np.random.normal(0.0, sigma_rho_disk, N_disk) #[km/s]
-    # Rotate the disk
-    galaxy[1,N_bulge:N_disk+N_bulge] += galaxy[3,N_bulge:N_disk+N_bulge]*km2pc*dt/galaxy[0,N_bulge:N_disk+N_bulge] # v_phi = rho*dphi/dt #[pc]
-    # Oscillate disk particles (around original rho and z positions only)
-    galaxy[0,N_bulge:N_disk+N_bulge] = rho_disk + tools.r_oscillation(galaxy, t, mean_rho_disk, N_bulge, N_disk, amp=h_z_thick)
-    galaxy[2,N_bulge:N_disk+N_bulge] = tools.z_oscillation(galaxy, t, mean_z_disk, N_bulge, N_disk, amp=z_disk)    
-
-    # Evaluate halo velocities (Spherical)
-    galaxy[3,N_bulge+N_disk:] = tools.v_rotational_unisphere(galaxy[0,N_bulge+N_disk:], rho_halo) #[km/s]
-    sign = np.round(np.random.uniform(0,1,N_halo))*2.-1
-    galaxy[7,N_bulge+N_disk:] = sign*np.random.normal(0.0, sigma_halo, N_halo) #[km/s]
-    # Rotate the halo
-    galaxy[1,N_bulge+N_disk:] += galaxy[3,N_bulge+N_disk:]*km2pc*dt/galaxy[0,N_bulge+N_disk:] # v_theta = r*dtheta/dt  #[pc]
-    galaxy[2,N_bulge+N_disk:] += galaxy[7,N_bulge+N_disk:]*km2pc*dt/galaxy[0,N_bulge+N_disk:]*np.sin(galaxy[2,N_bulge+N_disk:]) # v_phi = r*sin(theta)*dphi/dt #[pc]
-    # Oscillate halo particles (around original r positions only)
-    galaxy[0,N_bulge+N_disk:] = tools.r_halo_oscillation(galaxy, t, mean_halo, N_bulge, N_disk, N_halo, R_halo)
-            
-    colonized_fraction = abs(np.sum(galaxy[5]))/len(galaxy[5])
+        # Evaluate halo velocities (Spherical)
+        galaxy[3,N_bulge+N_disk:] = tools.v_rotational_unisphere(galaxy[0,N_bulge+N_disk:], rho_halo) #[km/s]
+        sign = np.round(np.random.uniform(0,1,N_halo))*2.-1
+        galaxy[7,N_bulge+N_disk:] = sign*np.random.normal(0.0, sigma_halo, N_halo) #[km/s]
+        # Rotate the halo
+        galaxy[1,N_bulge+N_disk:] += galaxy[3,N_bulge+N_disk:]*km2pc*dt_r/galaxy[0,N_bulge+N_disk:] # v_theta = r*dtheta/dt  #[pc]
+        galaxy[2,N_bulge+N_disk:] += galaxy[7,N_bulge+N_disk:]*km2pc*dt_r/galaxy[0,N_bulge+N_disk:]*np.sin(galaxy[2,N_bulge+N_disk:]) # v_phi = r*sin(theta)*dphi/dt #[pc]
+        # Oscillate halo particles (around original r positions only)
+        galaxy[0,N_bulge+N_disk:] = tools.r_halo_oscillation(galaxy, t, mean_halo, N_bulge, N_disk, N_halo, R_halo)
+        
+#        colonized_fraction = abs(np.sum(galaxy[5]))/len(galaxy[5])
+    colonized_fraction =  captured_total*1.0/(N_gal)
     i += 1
-
-#    if np.round(colonized_fraction)==0.2 or np.round(colonized_fraction)==0.5:
-    print "%.2f Myr \t %.2f colonized"%(t*sec2Myr, colonized_fraction*100.)
+    col_parts = len(np.where(galaxy[5]!=0)[0])
+    print "%.3f Myr \t %.5f %%colonized"%(t*sec2Myr, colonized_fraction*100.)
     if abs(colonized_fraction-0.50) >= 0.05:
-        if int(t*sec2Myr)%0.1 == 0:
+        if (t*sec2Myr)%dt_log == 0:
             print "%.2f colonized"%(colonized_fraction)
             print "Writing to file..."
             filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*100))
