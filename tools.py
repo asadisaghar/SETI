@@ -1,4 +1,3 @@
-
 import random
 import cProfile
 from math import *
@@ -225,7 +224,7 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
             ind_new = pots[np.where(d==d_min)[0][0]]
             galaxy[5,ind_new] = 1
             galaxy[4,ind_new] *= (1.-coveringFraction)
-            captured += len(cols)
+            captured += 1
 
     if captured>0:
         count = 1
@@ -289,9 +288,11 @@ def col_inf2(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
             indcs = pots[cols]
             galaxy[5,indcs] = 1
             galaxy[4,indcs] *= (1.-coveringFraction)
-            galaxy[5,ind] = -1
+#            galaxy[5,ind] = -1
             captured += len(cols)
-
+  
+#        print ind
+#        print captured
     if captured>0:
         count = 1
     else:
@@ -364,7 +365,7 @@ def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
 
 def plot_part_galaxy(filename, N_bulge, N_disk, mode):
     tmp = filename.split('.npy')
-    t = tmp[0].split('_')[1]
+    t = tmp[0].split('galaxy_')[1]
     galaxy = np.load('%s'%(filename))
     
     x_gal = np.zeros_like(galaxy[0])
@@ -465,7 +466,7 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
 #def plot_cont_galaxy(t, x_gal, y_gal, z_gal, cont, R0, I_gal, col_frac=0, bin_no=100):
 def plot_cont_galaxy(filename, N_bulge, N_disk, bin_no=100): #If you have enough particle resolution, choose 1000
     tmp = filename.split('.npy')
-    t = tmp[0].split('_')[1]
+    t = tmp[0].split('galaxy_')[1]
     galaxy = np.load('%s'%(filename))
     
     x_gal = np.zeros_like(galaxy[0])
@@ -563,7 +564,7 @@ def plot_cont_galaxy(filename, N_bulge, N_disk, bin_no=100): #If you have enough
 
 def plot_profile(filename, N_bulge, N_disk):
     tmp = filename.split('.npy')
-    t = float(tmp[0].split('_')[1])
+    t = float(tmp[0].split('galaxy_')[1])
     galaxy = np.load('%s'%(filename))
 
     radius = galaxy[0]/1e3
