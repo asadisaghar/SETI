@@ -40,20 +40,21 @@ cSpeed = 3.e5 #[km/s]
 #        HANDLES        #
 # ===================== #
 N_disk = int(1.e4)  # number of particles in disk (same order as N_gal)
-dt_log = 1.*Myr2sec #[s] time step to dump the array into a file
-dt_r = 1.*Myr2sec #[s] time step to rotate the galaxy
-dt_c = 1e-2*Myr2sec #[s] time step to update the colonization
+dt_log = 0.05*Myr2sec #[s] time step to dump the array into a file
+dt_r = 0.05*Myr2sec #[s] time step to rotate the galaxy
+dt_c = 5e-3*Myr2sec #[s] time step to update the colonization
 dt_const = 1e-12*Myr2sec #[s]
-VC = 1e-2*cSpeed #[km/s]
+VC = 1e-1*cSpeed #[km/s]
 t = 0
-t_f = 1.5e3*Myr2sec  # time to stop #[s]
-SingleProbe = False
-probe = "inf"
+t_f = 5.*Myr2sec  # time to stop #[s]
+col_f = 0.5
+SingleProbe = True
+probe = "tst"
 InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 0e3  # radial distance from the galactic center in #[pc]
+start_r = 15e3  # radial distance from the galactic center in #[pc]
 loc = 1
 r_err = 100. #[pc]
 # ===================== #
@@ -223,15 +224,16 @@ while t < t_f:
     # Colonize the galaxy!
     dist = VC * (dt_c-dt_const)*km2pc #[pc]
 #    with timer("===========COLONIZING!==========="):
-    if abs(colonized_fraction-0.50) >= 0.05 and i%(int(dt_r/dt_c)) != 0:
+    if abs(colonized_fraction-col_f) >= 0.05:# and i%(int(dt_r/dt_c)) != 0:
 #        print 'pre-count: %d pre_dist: %.5f'%(count, dist)
         if SingleProbe:
             galaxy, count, post_dist, captured = tools.col_sing(galaxy, dist, count, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
+            captured_total += captured
         elif InfiniteProbe:
             galaxy, count, post_dist, captured = tools.col_inf2(galaxy, dist, count, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
             captured_total += captured
 #        print 'post-count: %d post_dist: %.5f'%(count, post_dist)
-    elif i%(int(dt_r/dt_c)) == 0:
+    if i%(int(dt_r/dt_c)) == 0:
         # Evaluate bulge velocities (Spherical)
         galaxy[3,:N_bulge] = tools.v_rotational_unisphere(galaxy[0,:N_bulge], rho_bulge) #[km/s]
         sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
@@ -267,12 +269,12 @@ while t < t_f:
     i += 1
     col_parts = len(np.where(galaxy[5]!=0)[0])
     print "%.3f Myr \t %.5f %%colonized"%(t*sec2Myr, colonized_fraction*100.)
-    if abs(colonized_fraction-0.50) >= 0.05 and i%(int(dt_log/dt_c)) == 0:
+    if abs(colonized_fraction-col_f) >= 0.05 and i%(int(dt_log/dt_c)) == 0:
         print "%.2f colonized"%(colonized_fraction)
         print "Writing to file..."
         filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*1000))
         np.save(filename, galaxy)
-    elif i%(int(100.*Myr2sec/dt_c)) == 0:
+    elif i%(int(5.*Myr2sec/dt_c)) == 0:
         print "%.2f colonized"%(colonized_fraction)
         print "Writing to file..."
         filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*1000))

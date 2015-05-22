@@ -209,6 +209,7 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
     inds  = np.where(cs_gal==1)[0]
     captured = 0
     for ind in inds:
+#        print 'current colonizer: %d'%(ind)
         x_col = x_gal[ind]              
         y_col = y_gal[ind]
         z_col = z_gal[ind]
@@ -225,6 +226,7 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
             galaxy[5,ind_new] = 1
             galaxy[4,ind_new] *= (1.-coveringFraction)
             captured += 1
+#            print '%d new colonies by %d!'%(captured, ind)
 
     if captured>0:
         count = 1
