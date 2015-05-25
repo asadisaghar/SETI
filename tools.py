@@ -170,7 +170,7 @@ def CS_random(N_gal):
 # Particle-to-particle colonization, single probe
 # As each step, the *closest* site within the sphere of r=dist is colonized,
 # ONLY by the sites which are colonized during the FIRST previous step
-def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
+def col_sing(galaxy, dist_o, count, coveringFraction, N_bulge, N_disk):
     x_gal = np.zeros_like(galaxy[0])
     y_gal = np.zeros_like(galaxy[1])
     z_gal = np.zeros_like(galaxy[2])
@@ -222,7 +222,7 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
         d_min = min(d)
         if d_min <= dist:
             ind_new = pots[np.where(d==d_min)[0][0]]
-            galaxy[5,indcs] = count
+            galaxy[5,ind_new] = count
             galaxy[4,ind_new] *= (1.-coveringFraction)
             captured += 1
 
@@ -395,7 +395,8 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
     y_col = y_gal[inds]
     z_col = z_gal[inds]
 
-    colonized_fraction = abs(np.sum(cs_gal)/len(cs_gal))
+    colonized = np.where(cs_gal!=0)[0]
+    colonized_fraction = len(colonized)/len(cs_gal)*1.
 
     fig = plt.figure(figsize=(20, 10))
     # Face-on
@@ -408,8 +409,8 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
     elif mode == 'w':
         fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
         focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
-        ftst = axfo.scatter(x_gal[N_bulge+10]/1e3, y_gal[N_bulge+10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
-        ftst = axfo.scatter(x_gal[N_bulge+60]/1e3, y_gal[N_bulge+60]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
+#        ftst = axfo.scatter(x_gal[N_bulge+10]/1e3, y_gal[N_bulge+10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
+#        ftst = axfo.scatter(x_gal[N_bulge+60]/1e3, y_gal[N_bulge+60]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
     elif mode == 'n':
         fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=1.0, cmap=cmap)
         focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='None', edgecolor='None')
@@ -433,8 +434,8 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
     elif mode == 'w':
         eo = axfo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
         eocol = axfo.scatter(x_col/1e3, z_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
-        ftst = axfo.scatter(x_gal[N_bulge+10]/1e3, z_gal[N_bulge+10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
-        ftst = axfo.scatter(x_gal[N_bulge+60]/1e3, z_gal[N_bulge+60]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
+#        ftst = axfo.scatter(x_gal[N_bulge+10]/1e3, z_gal[N_bulge+10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
+#        ftst = axfo.scatter(x_gal[N_bulge+60]/1e3, z_gal[N_bulge+60]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
     elif mode == 'n':
         eo = axfo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=1.0, cmap=cmap)
         eocol = axfo.scatter(x_col/1e3, z_col/1e3, marker='o', c='None', edgecolor='None')
@@ -447,7 +448,7 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
 #                      orientation='horizontal')
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
 #    plt.title("Colonized fraction = %.2f"%(colonized_fraction))
-#    print ("Colonized fraction = %.2f"%(colonized_fraction))
+    print ("Colonized fraction = %.2f"%(colonized_fraction))
     plt.savefig("%s.png"%(filename))
 #    plt.show()
 
