@@ -146,7 +146,7 @@ def init_sersic(I_0, alpha, n_s, r):
 #Where in the galaxy do you think the first colonizing civilization(s) arise?
 def CS_manual(N_gal, galaxy, start_r, r_err):
     CS = np.zeros(N_gal)
-    random.seed(121323)
+    random.seed(RS)
     while True:
         try:
             colonizer = np.where((abs(galaxy[0]-start_r)<=r_err))[0]
@@ -415,8 +415,8 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
         fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=1.0, cmap=cmap)
         focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='None', edgecolor='None')
     
-    plt.xlabel(r'X (pc)')
-    plt.ylabel(r'Y (pc)')
+    plt.xlabel(r'X (kpc)')
+    plt.ylabel(r'Y (kpc)')
     plt.xlim([-3e1, 3e1])
     plt.ylim([-3e1, 3e1])
 #    print ("time = %s Myr"%(t/100.))

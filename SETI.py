@@ -39,20 +39,21 @@ cSpeed = 3.e5 #[km/s]
 # ===================== #
 #        HANDLES        #
 # ===================== #
-N_disk = int(5.e4)  # number of particles in disk (same order as N_gal)
-dt_log = 0.1*Myr2sec #[s] time step to dump the array into a file
-dt_r = 0.3*Myr2sec #[s] time step to rotate the galaxy
-dt_c = 2.e-2*Myr2sec #[s] time step to update the colonization
+N_disk = int(1.e4)  # number of particles in disk (same order as N_gal)
+dt_log = 5e-1*Myr2sec #[s] time step to dump the array into a file
+dt_r = 0.1*Myr2sec #[s] time step to rotate the galaxy
+dt_c = 1.e-2*Myr2sec #[s] time step to update the colonization
 dt_const = 1e-12*Myr2sec #[s]
-VC = 1e-1*cSpeed #[km/s]
+VC = 1e-4*cSpeed #[km/s]
 t = 0
-t_f = 1.5e3*Myr2sec  # time to stop #[s]
+t_f = 5.e1*Myr2sec  # time to stop #[s]
 col_log10 = 0.1
 col_log50 = 0.5
 col_log75 = 0.75
 col_f = 0.75
-SingleProbe = True
-probe = "sing"
+rotation = True
+SingleProbe = False
+probe = "tst"
 InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
@@ -204,10 +205,10 @@ galaxy[5] = CS_gal
 galaxy[6] = V1_gal
 galaxy[7] = V3_gal
 
-#print "Initial state"
-#print "Writing to file..."
-#filename = "galaxy"
-#np.save(filename, galaxy)
+print "Initial state"
+print "Writing to file..."
+filename = "galaxy_00"
+np.save(filename, galaxy)
 
 #def update():
 #global t
@@ -228,7 +229,7 @@ while t < t_f:
     # Colonize the galaxy!
 #    with timer("===========COLONIZING!==========="):
 
-    if colonized_fraction < col_f and i%(int(dt_r/dt_c)) != 0:
+    if colonized_fraction < col_f:# and i%(int(dt_r/dt_c)) != 0:
         if SingleProbe:
             galaxy, captured = tools.col_sing(galaxy, dist, i, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
             captured_total += captured
@@ -236,7 +237,7 @@ while t < t_f:
             galaxy, captured = tools.col_inf2(galaxy, dist, i, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
             captured_total += captured
 
-    if i%(int(dt_r/dt_c)) == 0:
+    if rotation and i%(int(dt_r/dt_c)) == 0:
         # Evaluate bulge velocities (Spherical)
         galaxy[3,:N_bulge] = tools.v_rotational_unisphere(galaxy[0,:N_bulge], rho_bulge) #[km/s]
         sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
@@ -273,16 +274,17 @@ while t < t_f:
     col_parts = len(np.where(galaxy[5]!=0)[0])
     print "%.3f Myr \t %.5f %%colonized"%(t*sec2Myr, colonized_fraction*100.)
     
-    # if abs(colonized_fraction-col_log10)<=0.01 or abs(colonized_fraction-col_log50)<=0.02 or abs(colonized_fraction-col_log75)<=0.02:
-    #     print "%.2f colonized"%(colonized_fraction*100.)
-    #     print "Writing to file..."
-    #     filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d_%.2d"%(probe, loc, int(t*sec2Myr*1000), int(colonized_fraction*100))
-    #     np.save(filename, galaxy)
-    if i==1e3 or i==5e3 or i==1e4 or i==5e4 or i==1e5:
+#    if abs(colonized_fraction-col_log10)<=0.01 or abs(colonized_fraction-col_log50)<=0.02 or abs(colonized_fraction-col_log75)<=0.02:
+    if i%(int(dt_log/dt_c))==0:
         print "%.2f colonized"%(colonized_fraction*100.)
         print "Writing to file..."
-        filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d_%d"%(probe, loc, int(t*sec2Myr*1000), i)
+        filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d_%.2d"%(probe, loc, int(t*sec2Myr*1000), int(colonized_fraction*100))
         np.save(filename, galaxy)
+    # if i==1e3 or i==5e3 or i==1e4 or i==5e41;5A or i==1e5:
+    #     print "%.2f colonized"%(colonized_fraction*100.)
+    #     print "Writing to file..."
+    #     filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d_%d"%(probe, loc, int(t*sec2Myr*1000), i)
+    #     np.save(filename, galaxy)
 #   galaxy_backup[:]=galaxy
     # elif i%((250.*Myr2sec/dt_c)) == 0:
     #     print "%.2f colonized"%(colonized_fraction)
