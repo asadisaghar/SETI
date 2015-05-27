@@ -36,22 +36,29 @@ Myr2sec = Myr2yr*yr2sec
 sec2Myr = 1./Myr2sec
 
 cSpeed = 3.e5 #[km/s]
+RS = 99
+random.seed(RS)
 # ===================== #
 #        HANDLES        #
 # ===================== #
 N_disk = int(1.e4)  # number of particles in disk (same order as N_gal)
-dt_log = 5e-1*Myr2sec #[s] time step to dump the array into a file
-dt_r = 0.1*Myr2sec #[s] time step to rotate the galaxy
-dt_c = 1.e-2*Myr2sec #[s] time step to update the colonization
+dt_log = 1.e0*Myr2sec #[s] time step to dump the array into a file
+dt_r = 5.e-2*Myr2sec #[s] time step to rotate the galaxy
+dt_c = 5.e-2*Myr2sec #[s] time step to update the colonization
 dt_const = 1e-12*Myr2sec #[s]
 VC = 1e-4*cSpeed #[km/s]
 t = 0
-t_f = 5.e1*Myr2sec  # time to stop #[s]
+t_f = 250.e0*Myr2sec  # time to stop #[s]
 col_log10 = 0.1
 col_log50 = 0.5
 col_log75 = 0.75
 col_f = 0.75
+
+colonization = True
 rotation = True
+oscillation_r = True
+oscillation_z = True
+
 SingleProbe = False
 probe = "tst"
 InfiniteProbe = not(SingleProbe)
@@ -59,8 +66,8 @@ coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
 start_r = 8.e3  # radial distance from the galactic center in #[pc]
-loc = 2
-r_err = 100. #[pc]
+loc = 1111
+r_err = 10. #[pc]
 # ===================== #
 #  Galactic parameters  #
 # ===================== #
@@ -94,8 +101,8 @@ sigma_bulge = 100. # Velocity dispercion  #[km/s]
 rho_bulge = M_bulge/(4./3.*pi*R_bulge**3)
 
 # Halo
-N_halo = int(0.01*N_disk)
-#N_halo = N_bulge
+N_halo = int(0.01*N_bulge)
+#N_halo = 0
 R_halo = 30.e3
 I_0_halo = 20.e7  # Halo central intensity
 alpha_halo = R_halo/3.  # bulge scale length
@@ -189,7 +196,7 @@ I_gal = np.append(I_gal, I_halo)
 
 Li = np.sum(I_gal)
 
-# Galaxy 6-D array
+# Galaxy 11-D array
 galaxy = np.zeros((8, N_gal))
 galaxy[0] = P1_gal
 galaxy[1] = P2_gal
@@ -229,7 +236,7 @@ while t < t_f:
     # Colonize the galaxy!
 #    with timer("===========COLONIZING!==========="):
 
-    if colonized_fraction < col_f:# and i%(int(dt_r/dt_c)) != 0:
+    if colonization and colonized_fraction < col_f:# and i%(int(dt_r/dt_c)) != 0:
         if SingleProbe:
             galaxy, captured = tools.col_sing(galaxy, dist, i, coveringFraction, N_bulge=N_bulge, N_disk=N_disk)
             captured_total += captured
@@ -254,19 +261,25 @@ while t < t_f:
 #        galaxy[3,N_bulge:N_bulge+N_disk] += sign*np.random.normal(0.0, sigma_rho_disk, N_disk) #[km/s]
         # Rotate the disk
         galaxy[1,N_bulge:N_disk+N_bulge] += galaxy[3,N_bulge:N_disk+N_bulge]*km2pc*dt_r/galaxy[0,N_bulge:N_disk+N_bulge] # v_phi = rho*dphi/dt #[pc]
-        # Oscillate disk particles (around original rho and z positions only)
-        galaxy[0,N_bulge:N_disk+N_bulge] = rho_disk + tools.r_oscillation(galaxy, t, mean_rho_disk, N_bulge, N_disk, amp=h_z_thick)
-        galaxy[2,N_bulge:N_disk+N_bulge] = tools.z_oscillation(galaxy, t, mean_z_disk, N_bulge, N_disk, amp=z_disk)    
+        if oscillation_r or oscillation_z:
+            if oscillation_r:
+            # Oscillate disk particles (around original rho and z positions only)
+                galaxy[0,N_bulge:N_disk+N_bulge] = rho_disk + tools.r_oscillation(galaxy, t, mean_rho_disk, N_bulge, N_disk, amp=100)
+            if oscillation_z:
+                galaxy[2,N_bulge:N_disk+N_bulge] = tools.z_oscillation(galaxy, t, mean_z_disk, N_bulge, N_disk, amp=z_disk)    
+        else:
+            galaxy[0,N_bulge:N_disk+N_bulge] = rho_disk
+            galaxy[2,N_bulge:N_disk+N_bulge] = z_disk    
 
         # Evaluate halo velocities (Spherical)
         galaxy[3,N_bulge+N_disk:] = tools.v_rotational_unisphere(galaxy[0,N_bulge+N_disk:], rho_halo) #[km/s]
-        sign = np.round(np.random.uniform(0,1,N_halo))*2.-1
-        galaxy[7,N_bulge+N_disk:] = sign*np.random.normal(0.0, sigma_halo, N_halo) #[km/s]
+#        sign = np.round(np.random.uniform(0,1,N_halo))*2.-1
+        galaxy[7,N_bulge+N_disk:] = np.random.normal(0.0, sigma_halo, N_halo) #[km/s]
         # Rotate the halo
         galaxy[1,N_bulge+N_disk:] += galaxy[3,N_bulge+N_disk:]*km2pc*dt_r/galaxy[0,N_bulge+N_disk:] # v_theta = r*dtheta/dt  #[pc]
         galaxy[2,N_bulge+N_disk:] += galaxy[7,N_bulge+N_disk:]*km2pc*dt_r/galaxy[0,N_bulge+N_disk:]*np.sin(galaxy[2,N_bulge+N_disk:]) # v_phi = r*sin(theta)*dphi/dt #[pc]
         # Oscillate halo particles (around original r positions only)
-        galaxy[0,N_bulge+N_disk:] = tools.r_halo_oscillation(galaxy, t, mean_halo, N_bulge, N_disk, N_halo, R_halo)
+#        galaxy[0,N_bulge+N_disk:] = tools.r_halo_oscillation(galaxy, t, mean_halo, N_bulge, N_disk, N_halo, R_halo)
         
 #        colonized_fraction = abs(np.sum(galaxy[5]))/len(galaxy[5])
     colonized_fraction =  captured_total*1.0/(N_gal)

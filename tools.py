@@ -10,7 +10,7 @@ plt.rc("axes", labelsize=16, titlesize=20)
 plt.rc("xtick", labelsize=16)
 plt.rc("ytick", labelsize=16)
 plt.rc("legend", fontsize=16)
-RS = 123124
+RS = 100
 # ===================== #
 #        CONSTANTS      #
 # ===================== #
@@ -27,6 +27,25 @@ cSpeed = 3.e5*km/sec  # pc/s
 colors = ['#d7191c', '#fdae61', '#abd9e9','#2c7bb6']
 Gconst = 6.67e-11 #N.m^2.kg^-2 = kg^1.m^1.s^-2.m^2.kg^-2 = kg^-1.m^3.s^-2 
 Gconst = Gconst*meter**3/(kg*sec**2)
+
+km2m = 1.e3
+m2km = 1./km2m
+kpc2pc = 1.e3
+pc2kpc = 1./kpc2pc
+pc2m = 3.08567758e16
+m2pc = 1./pc2m
+pc2km = pc2m*m2km
+km2pc = km2m*m2pc
+Msolar2kg = 1.9891e30
+kg2Msolar = 1./Msolar2kg
+yr2sec = pi*1e7
+sec2yr = 1./yr2sec
+Myr2yr = 1.e6
+yr2Myr = 1./Myr2yr
+Myr2sec = Myr2yr*yr2sec
+sec2Myr = 1./Myr2sec
+
+cSpeed = 3.e5 #[km/s]
 # ===================== #
 import datetime
 import contextlib, time
@@ -112,14 +131,18 @@ def v_rotational_unisphere(r, density):
 # Calculating the oscillatory motion of disk particles [along z direction]
 def z_oscillation(galaxy, t, v, N_bulge, N_disk, amp):
     z = galaxy[2,N_bulge:N_bulge+N_disk]
-    omega = 2.*pi/(25.*pi*1e7*1e6)
+    v = 30. # radial velocity dispersion [km/s]
+#    omega = v*km2pc/amp
+    omega = 2.*pi/(1.*pi*1e7*1e6)
     phase = init_pos(N_disk, 0., 2.*pi, 'uni')
     galaxy[2,N_bulge:N_bulge+N_disk] = amp*np.cos(omega*t+phase)
     return galaxy[2,N_bulge:N_bulge+N_disk]
 
 def r_oscillation(galaxy, t, v, N_bulge, N_disk, amp):
     r = galaxy[0,N_bulge:N_bulge+N_disk]
-    omega = 2.*pi/(25.*pi*1e7*1e6)
+    v = 20. # radial velocity dispersion [km/s]
+#    omega = v*km2pc/amp
+    omega = 2.*pi/(100.*pi*1e7*1e6)
     phase = init_pos(N_disk, 0., 2.*pi, 'uni')
     galaxy[0,N_bulge:N_bulge+N_disk] = amp*np.cos(omega*t+phase)
     return galaxy[0,N_bulge:N_bulge+N_disk]
@@ -284,7 +307,6 @@ def col_inf2(galaxy, dist_o, count, coveringFraction, N_bulge, N_disk):
             galaxy[5,indcs] = count
             galaxy[4,indcs] *= (1.-coveringFraction)
             captured += len(cols)
-
     return galaxy, captured
 
 def calculate_reachable(galaxy, dist, ind):
@@ -409,8 +431,8 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
     elif mode == 'w':
         fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
         focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
-#        ftst = axfo.scatter(x_gal[N_bulge+10]/1e3, y_gal[N_bulge+10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
-#        ftst = axfo.scatter(x_gal[N_bulge+60]/1e3, y_gal[N_bulge+60]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
+        ftst = axfo.scatter(x_gal[N_bulge+10]/1e3, y_gal[N_bulge+10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=50)
+        ftst = axfo.scatter(x_gal[N_bulge+60]/1e3, y_gal[N_bulge+60]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=50)
     elif mode == 'n':
         fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=1.0, cmap=cmap)
         focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='None', edgecolor='None')
@@ -434,8 +456,8 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
     elif mode == 'w':
         eo = axfo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
         eocol = axfo.scatter(x_col/1e3, z_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
-#        ftst = axfo.scatter(x_gal[N_bulge+10]/1e3, z_gal[N_bulge+10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
-#        ftst = axfo.scatter(x_gal[N_bulge+60]/1e3, z_gal[N_bulge+60]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=30)
+        ftst = axfo.scatter(x_gal[N_bulge+10]/1e3, z_gal[N_bulge+10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=50)
+        ftst = axfo.scatter(x_gal[N_bulge+60]/1e3, z_gal[N_bulge+60]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=50)
     elif mode == 'n':
         eo = axfo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=1.0, cmap=cmap)
         eocol = axfo.scatter(x_col/1e3, z_col/1e3, marker='o', c='None', edgecolor='None')
