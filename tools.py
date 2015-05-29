@@ -10,7 +10,7 @@ plt.rc("axes", labelsize=16, titlesize=20)
 plt.rc("xtick", labelsize=16)
 plt.rc("ytick", labelsize=16)
 plt.rc("legend", fontsize=16)
-RS = 123124
+RS = 1
 # ===================== #
 #        CONSTANTS      #
 # ===================== #
@@ -105,7 +105,8 @@ def v_rotational_disk(r, V_opt, R_opt, L2Lstar):
     V2_rot = V2_disk + V2_DM
     return np.sqrt(V2_rot)
 
-def v_rotational_unisphere(r, density):
+def v_rotational_unisphere(r, R, mass):
+        density = 3.*mass/(4.*pi*R**3)
 	V_rot = np.sqrt(4./3.*pi*Gconst*density)*r
 	return V_rot
 
@@ -133,7 +134,7 @@ def r_bulge_oscillation(galaxy, t, v, N_bulge, amp):
 
 def r_halo_oscillation(galaxy, t, v, N_bulge, N_disk, N_halo, amp):
     r = galaxy[0,N_bulge+N_disk:]
-    omega = 2.*pi/(25.*pi*1e7*1e6)
+    omega = 2.*pi/(300.*pi*1e7*1e6)
     phase = init_pos(N_halo, 0., 2.*pi, 'uni')
     galaxy[0,N_bulge+N_disk:] = amp*np.cos(omega*t+phase)
     return galaxy[0,N_bulge+N_disk:]
@@ -146,7 +147,7 @@ def init_sersic(I_0, alpha, n_s, r):
 #Where in the galaxy do you think the first colonizing civilization(s) arise?
 def CS_manual(N_gal, galaxy, start_r, r_err):
     CS = np.zeros(N_gal)
-    random.seed(121323)
+    random.seed(RS)
     while True:
         try:
             colonizer = np.where((abs(galaxy[0]-start_r)<=r_err))[0]
@@ -170,8 +171,7 @@ def CS_random(N_gal):
 # Particle-to-particle colonization, single probe
 # As each step, the *closest* site within the sphere of r=dist is colonized,
 # ONLY by the sites which are colonized during the FIRST previous step
-def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
-    dist *= count
+def col_sing(galaxy, dist_o, count, coveringFraction, N_bulge, N_disk):
     x_gal = np.zeros_like(galaxy[0])
     y_gal = np.zeros_like(galaxy[1])
     z_gal = np.zeros_like(galaxy[2])
@@ -209,6 +209,7 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
     inds  = np.where(cs_gal==1)[0]
     captured = 0
     for ind in inds:
+        dist = dist_o*(count-galaxy[5,ind])
         x_col = x_gal[ind]              
         y_col = y_gal[ind]
         z_col = z_gal[ind]
@@ -222,21 +223,15 @@ def col_sing(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
         d_min = min(d)
         if d_min <= dist:
             ind_new = pots[np.where(d==d_min)[0][0]]
-            galaxy[5,ind_new] = 1
+            galaxy[5,ind_new] = count
             galaxy[4,ind_new] *= (1.-coveringFraction)
             captured += 1
 
-    if captured>0:
-        count = 1
-    else:
-        count += 1
-
-    return galaxy, count
+    return galaxy, captured
 
 # Spherical colonization, infinite probes
 # As each step, all site within the sphere of r=dist is colonized
-def col_inf2(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
-    dist *= count
+def col_inf2(galaxy, dist_o, count, coveringFraction, N_bulge, N_disk):
     x_gal = np.zeros_like(galaxy[0])
     y_gal = np.zeros_like(galaxy[1])
     z_gal = np.zeros_like(galaxy[2])
@@ -271,10 +266,11 @@ def col_inf2(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
     z_gal[N_bulge+N_disk:] = r_gal*np.cos(theta_gal)
 
     # Spot the colonizer
-    inds  = np.where(cs_gal==1)[0]
+    inds  = np.where(cs_gal != 0)[0]
     captured = 0
     for ind in inds:
-        x_col = x_gal[ind]              
+        dist = dist_o*(count-galaxy[5,ind])
+        x_col = x_gal[ind]
         y_col = y_gal[ind]
         z_col = z_gal[ind]
         # Spot potential colonies (particles that have never been colonized)
@@ -286,19 +282,11 @@ def col_inf2(galaxy, dist, count, coveringFraction, N_bulge, N_disk):
         cols = np.where(d<=dist)[0]
         if len(cols)>0:
             indcs = pots[cols]
-            galaxy[5,indcs] = 1
+            galaxy[5,indcs] = count
             galaxy[4,indcs] *= (1.-coveringFraction)
-#            galaxy[5,ind] = -1
             captured += len(cols)
-  
-#        print ind
-#        print captured
-    if captured>0:
-        count = 1
-    else:
-        count += 1
 
-    return galaxy, count
+    return galaxy, captured
 
 def calculate_reachable(galaxy, dist, ind):
     # spot the colonizer!
@@ -363,7 +351,7 @@ def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
 #    plt.show()
 
 
-def plot_part_galaxy(filename, N_bulge, N_disk, mode):
+def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode):
     tmp = filename.split('.npy')
     t = tmp[0].split('galaxy_')[1]
     galaxy = np.load('%s'%(filename))
@@ -393,13 +381,13 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
     z_gal[N_bulge:N_bulge+N_disk] = z_gal_cyl
 
     # Halo (Spherical to Cartesian)
-    r_gal = galaxy[0,N_bulge+N_disk:]
-    theta_gal = galaxy[1,N_bulge+N_disk:]
-    phi_gal_sph = galaxy[2,N_bulge+N_disk:]
+    r_gal = galaxy[0,-N_halo:]
+    theta_gal = galaxy[1,-N_halo:]
+    phi_gal_sph = galaxy[2,-N_halo:]
 
-    x_gal[N_bulge+N_disk:] = r_gal*np.sin(theta_gal)*np.cos(phi_gal_sph)
-    y_gal[N_bulge+N_disk:] = r_gal*np.sin(theta_gal)*np.sin(phi_gal_sph)
-    z_gal[N_bulge+N_disk:] = r_gal*np.cos(theta_gal)
+    x_gal[-N_halo:] = r_gal*np.sin(theta_gal)*np.cos(phi_gal_sph)
+    y_gal[-N_halo:] = r_gal*np.sin(theta_gal)*np.sin(phi_gal_sph)
+    z_gal[-N_halo:] = r_gal*np.cos(theta_gal)
     
     # Spot the colonizer
     inds  = np.where(cs_gal!=0)[0]
@@ -408,7 +396,8 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
     y_col = y_gal[inds]
     z_col = z_gal[inds]
 
-    colonized_fraction = abs(np.sum(cs_gal)/len(cs_gal))
+    colonized = np.where(cs_gal!=0)[0]
+    colonized_fraction = len(colonized)/len(cs_gal)*1.
 
     fig = plt.figure(figsize=(20, 10))
     # Face-on
@@ -421,12 +410,15 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
     elif mode == 'w':
         fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
         focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
-    elif mode == 'n':
-        fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=1.0, cmap=cmap)
-        focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='None', edgecolor='None')
+    elif mode == 'h':
+        fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
+        focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
+        ftst = axfo.scatter(x_gal[-10]/1e3, y_gal[-10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=80)
+        ftst = axfo.scatter(x_gal[-6]/1e3, y_gal[-6]/1e3, marker='o', c='b', edgecolor='None', alpha=1.0, s=80)
+        ftst = axfo.scatter(x_gal[-12]/1e3, y_gal[-12]/1e3, marker='o', c='r', edgecolor='None', alpha=1.0, s=80)
     
-    plt.xlabel(r'X (pc)')
-    plt.ylabel(r'Y (pc)')
+    plt.xlabel(r'X (kpc)')
+    plt.ylabel(r'Y (kpc)')
     plt.xlim([-3e1, 3e1])
     plt.ylim([-3e1, 3e1])
 #    print ("time = %s Myr"%(t/100.))
@@ -435,18 +427,21 @@ def plot_part_galaxy(filename, N_bulge, N_disk, mode):
 #                      orientation='horizontal')
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
     #Edge-on
-    axfo = plt.subplot(122)
+    axeo = plt.subplot(122)
     cmap = plt.cm.spectral_r
 #    cmap.set_bad('w', 0.)
     if mode == 'k':
-        eo = axfo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.1, cmap=cmap, s=30)
-        eocol = axfo.scatter(x_col/1e3, z_col/1e3, marker='o', c='k', alpha=0.3, s=5)
+        eo = axeo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.1, cmap=cmap, s=30)
+        eocol = axeo.scatter(x_col/1e3, z_col/1e3, marker='o', c='k', alpha=0.3, s=5)
     elif mode == 'w':
-        eo = axfo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
-        eocol = axfo.scatter(x_col/1e3, z_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
-    elif mode == 'n':
-        eo = axfo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=1.0, cmap=cmap)
-        eocol = axfo.scatter(x_col/1e3, z_col/1e3, marker='o', c='None', edgecolor='None')
+        eo = axeo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
+        eocol = axeo.scatter(x_col/1e3, z_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
+    elif mode == 'h':
+        eo = axeo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
+        eocol = axeo.scatter(x_col/1e3, z_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
+        ftst = axeo.scatter(x_gal[-10]/1e3, z_gal[-10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=80)
+        ftst = axeo.scatter(x_gal[-6]/1e3, z_gal[-6]/1e3, marker='o', c='b', edgecolor='None', alpha=1.0, s=80)
+        ftst = axeo.scatter(x_gal[-12]/1e3, z_gal[-12]/1e3, marker='o', c='r', edgecolor='None', alpha=1.0, s=80)
     
     plt.xlabel(r'X (kpc)')
     plt.ylabel(r'Z (kpc)')
@@ -554,7 +549,7 @@ def plot_cont_galaxy(filename, N_bulge, N_disk, bin_no=100): #If you have enough
     cb.set_label(r'$\mathrm{log(L/L_{total})}$')
     clim_min = min(cont)
     clim_max = max(cont) 
-    print ("Colonized fraction = %.2f"%(colonized_fraction))
+#    print ("Colonized fraction = %.2f"%(colonized_fraction))
 #    plt.clim(clim_min, clim_max)
 #    plt.title("Colonized fraction = %.2f"%(abs(colonized_fraction)))
     plt.savefig("%s.png"%(filename))
@@ -611,7 +606,7 @@ def plot_profile(filename, N_bulge, N_disk):
     colonized_fraction = abs(np.sum(col)/N_gal)
     print ("Colonized fraction = %.2f"%(colonized_fraction))
 
-    plt.suptitle("time = %.2f Myr"%(t/100.))
+    plt.suptitle("time = %.2f Myr"%(t/1000.))
     plt.savefig("%s.png"%(filename))
 #    plt.show()                                                                                                                    
     return galaxy
@@ -656,3 +651,4 @@ def number_density_fit(data, bins, model, p1=0, p2=0, p3=0, Pdensity=True, fit=T
     if fit:
         return (coeff[0], coeff[1], coeff[2])
         
+
