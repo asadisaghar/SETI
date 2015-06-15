@@ -1,6 +1,9 @@
 *.pyc
 *.lst
 *.txt
+*.txt~
 *.sh
 *.py~
+*.npy
+stats
 */*
