@@ -17,7 +17,7 @@ RS = 1
 pc = 1.
 sec = 1.
 M_solar = 1.
-
+# Multiply everything by relevant units below to translate them into pc, s, and M_solar
 meter = 1.e-3 #km
 km = 1./3.086e13  # pc
 year = 3.154e7*sec  # s
@@ -27,7 +27,28 @@ cSpeed = 3.e5*km/sec  # pc/s
 colors = ['#d7191c', '#fdae61', '#abd9e9','#2c7bb6']
 Gconst = 6.67e-11 #N.m^2.kg^-2 = kg^1.m^1.s^-2.m^2.kg^-2 = kg^-1.m^3.s^-2 
 Gconst = Gconst*meter**3/(kg*sec**2)
-# ===================== #
+
+km2m = 1.e3
+m2km = 1./km2m
+kpc2pc = 1.e3
+pc2kpc = 1./kpc2pc
+pc2m = 3.08567758e16
+m2pc = 1./pc2m
+pc2km = pc2m*m2km
+km2pc = km2m*m2pc
+Msolar2kg = 1.9891e30
+kg2Msolar = 1./Msolar2kg
+yr2sec = pi*1e7
+sec2yr = 1./yr2sec
+Myr2yr = 1.e6
+yr2Myr = 1./Myr2yr
+Myr2sec = Myr2yr*yr2sec
+sec2Myr = 1./Myr2sec
+
+cSpeed = 3.e5 #[km/s]
+RS = 1
+random.seed(RS)
+
 import datetime
 import contextlib, time
 @contextlib.contextmanager
@@ -106,8 +127,11 @@ def v_rotational_disk(r, V_opt, R_opt, L2Lstar):
     return np.sqrt(V2_rot)
 
 def v_rotational_unisphere(r, R, mass):
-        density = 3.*mass/(4.*pi*R**3)
+#        r *= pc2km
+#        R *= pc2km
+        density = 3.*mass/(4.*pi*(R)**3)
 	V_rot = np.sqrt(4./3.*pi*Gconst*density)*r
+        print np.max(V_rot)
 	return V_rot
 
 # Calculating the oscillatory motion of disk particles [along z direction]
@@ -351,7 +375,7 @@ def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
 #    plt.show()
 
 
-def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode):
+def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt):
     tmp = filename.split('.npy')
     t = tmp[0].split('galaxy_')[1]
     galaxy = np.load('%s'%(filename))
@@ -402,6 +426,7 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode):
     fig = plt.figure(figsize=(20, 10))
     # Face-on
     axfo = plt.subplot(121)
+    axfo.set_aspect('equal')
     cmap = plt.cm.spectral_r
 #    cmap.set_bad('w', 0.)
     if mode == 'k':
@@ -411,16 +436,17 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode):
         fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
         focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
     elif mode == 'h':
-        fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
-        focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
-        ftst = axfo.scatter(x_gal[-10]/1e3, y_gal[-10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=80)
-        ftst = axfo.scatter(x_gal[-6]/1e3, y_gal[-6]/1e3, marker='o', c='b', edgecolor='None', alpha=1.0, s=80)
-        ftst = axfo.scatter(x_gal[-12]/1e3, y_gal[-12]/1e3, marker='o', c='r', edgecolor='None', alpha=1.0, s=80)
+#        fo = axfo.scatter(x_gal/1e3, y_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
+#        focol = axfo.scatter(x_col/1e3, y_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
+        ftst = axfo.scatter(x_gal[N_bulge+1]/1e3, y_gal[N_bulge+1]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=80)
+        ftst = axfo.scatter(x_gal[16]/1e3, y_gal[16]/1e3, marker='o', c='b', edgecolor='None', alpha=1.0, s=80)
+        ftst = axfo.scatter(x_gal[-1]/1e3, y_gal[-1]/1e3, marker='o', c='r', edgecolor='None', alpha=1.0, s=80)
     
     plt.xlabel(r'X (kpc)')
     plt.ylabel(r'Y (kpc)')
     plt.xlim([-3e1, 3e1])
     plt.ylim([-3e1, 3e1])
+    plt.text(-2.5e1, 2.5e1, "%s"%(txt), fontsize=40)
 #    print ("time = %s Myr"%(t/100.))
 #    plt.title("time = %s Myr"%(t))
 #    cb = plt.colorbar(pad=0.2,
@@ -428,6 +454,7 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode):
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
     #Edge-on
     axeo = plt.subplot(122)
+    axeo.set_aspect('equal')
     cmap = plt.cm.spectral_r
 #    cmap.set_bad('w', 0.)
     if mode == 'k':
@@ -437,11 +464,11 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode):
         eo = axeo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
         eocol = axeo.scatter(x_col/1e3, z_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
     elif mode == 'h':
-        eo = axeo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
-        eocol = axeo.scatter(x_col/1e3, z_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
-        ftst = axeo.scatter(x_gal[-10]/1e3, z_gal[-10]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=80)
-        ftst = axeo.scatter(x_gal[-6]/1e3, z_gal[-6]/1e3, marker='o', c='b', edgecolor='None', alpha=1.0, s=80)
-        ftst = axeo.scatter(x_gal[-12]/1e3, z_gal[-12]/1e3, marker='o', c='r', edgecolor='None', alpha=1.0, s=80)
+#        eo = axeo.scatter(x_gal/1e3, z_gal/1e3, marker='o', c=(cont), edgecolor='None', alpha=0.5, cmap=cmap, s=30)
+#        eocol = axeo.scatter(x_col/1e3, z_col/1e3, marker='o', c='w', edgecolor='None', alpha=0.3, s=5)
+        ftst = axeo.scatter(x_gal[N_bulge+1]/1e3, z_gal[N_bulge+1]/1e3, marker='o', c='k', edgecolor='None', alpha=1.0, s=80)
+        ftst = axeo.scatter(x_gal[16]/1e3, z_gal[16]/1e3, marker='o', c='b', edgecolor='None', alpha=1.0, s=80)
+        ftst = axeo.scatter(x_gal[-1]/1e3, z_gal[-1]/1e3, marker='o', c='r', edgecolor='None', alpha=1.0, s=80)
     
     plt.xlabel(r'X (kpc)')
     plt.ylabel(r'Z (kpc)')
@@ -452,6 +479,7 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode):
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
 #    plt.title("Colonized fraction = %.2f"%(colonized_fraction))
     print ("Colonized fraction = %.2f"%(colonized_fraction))
+    plt.savefig("%s.svg"%(filename))
     plt.savefig("%s.png"%(filename))
 #    plt.show()
 
@@ -552,6 +580,7 @@ def plot_cont_galaxy(filename, N_bulge, N_disk, bin_no=100): #If you have enough
 #    print ("Colonized fraction = %.2f"%(colonized_fraction))
 #    plt.clim(clim_min, clim_max)
 #    plt.title("Colonized fraction = %.2f"%(abs(colonized_fraction)))
+    plt.savefig("%s.svg"%(filename))
     plt.savefig("%s.png"%(filename))
 #    plt.show()
     return galaxy
@@ -607,6 +636,7 @@ def plot_profile(filename, N_bulge, N_disk):
     print ("Colonized fraction = %.2f"%(colonized_fraction))
 
     plt.suptitle("time = %.2f Myr"%(t/1000.))
+    plt.savefig("%s.svg"%(filename))
     plt.savefig("%s.png"%(filename))
 #    plt.show()                                                                                                                    
     return galaxy

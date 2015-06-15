@@ -36,43 +36,45 @@ Myr2sec = Myr2yr*yr2sec
 sec2Myr = 1./Myr2sec
 
 cSpeed = 3.e5 #[km/s]
-RS = 1
+RS = 2
 random.seed(RS)
 # ===================== #
 #        HANDLES        #
 # ===================== #
 N_disk = int(2.e4)  # number of particles in disk (same order as N_gal)
-dt_log = 1.e2*Myr2sec #[s] time step to dump the array into a file
-dt_r = 5.e-2*Myr2sec #[s] time step to rotate the galaxy
-dt_c = 5.e-2*Myr2sec #[s] time step to update the colonization
+dt_log = 5.e0*Myr2sec #[s] time step to dump the array into a file
+dt_r = 2.e-1*Myr2sec #[s] time step to rotate the galaxy
+dt_c = 2.e-1*Myr2sec #[s] time step to update the colonization
 dt_const = 1e-12*Myr2sec #[s]
 VC = 1e-3*cSpeed #[km/s]
 t = 0
-t_f = 250.e1*Myr2sec  # time to stop #[s]
+t_f = 22.e2*Myr2sec  # time to stop #[s]
 col_log10 = 0.1
 col_log50 = 0.5
 col_log75 = 0.75
 
 colonization = True
+#Disk:
 rotation = True
 oscillation_r = True
 oscillation_z = True
-oscillation_theta = True
-oscillation_phi = False
-oscillation_halo_r = False
+#Bulge/Halo
+oscillation_sphere_r = False
 
-SingleProbe = True
-probe = "inf"
+SingleProbe = False
+probe = "midinf"
 if probe == 'inf' or probe == 'sing':
     col_f = 0.75
 elif probe == 'sinf' or probe == 'ssing':
     col_f = 0.5
+else:
+    col_f = 0.50
 InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
 # Change below only if RandomStart = False
-start_r = 1.e3  # radial distance from the galactic center in #[pc]
-loc = 0
+start_r = 8.e3  # radial distance from the galactic center in #[pc]
+loc = 2
 r_err = 10. #[pc]
 # ===================== #
 #  Galactic parameters  #
@@ -102,8 +104,8 @@ alpha_bulge = R_bulge/3.  # bulge scale length #[pc]
 n_s_bulge = 5  # Bulge Sersic index(in range: 1.5-10)
 #M_bulge = 9.3e6  # bulge mass #FIXME
 M_bulge = 2.e10  # bulge mass #[M_solar]
-mean_bulge = 100. # (My arbitrary value!!) #FIXME value  #[km/s]
-sigma_bulge = 100. # Velocity dispercion  #[km/s]
+mean_bulge = 200. # (My arbitrary value!!) #FIXME value  #[km/s]
+sigma_bulge = 10. # Velocity dispercion  #[km/s]
 rho_bulge = M_bulge/(4./3.*pi*R_bulge**3)
 
 # Halo
@@ -113,16 +115,17 @@ R_halo = 30.e3
 I_0_halo = 20.e7  # Halo central intensity
 alpha_halo = R_halo/3.  # bulge scale length
 n_s_halo = 5  # Bulge Sersic index(in range: 1.5-10)
-mean_halo = 200. # (My arbitrary value!!)
-sigma_halo = 200. # Velocity dispercion
-M_halo = 2.e9  # bulge mass
+mean_halo = 500. # (My arbitrary value!!)
+sigma_halo = 10. # Velocity dispercion
+M_halo = 2.e9  # Halo mass
+M_halo += M_bulge + M_disk
 rho_halo = M_halo/(4./3.*pi*R_halo**3)
 
 #GALAXY
 alpha_gal = alpha_disk
 N_gal = N_disk + N_bulge + N_halo
 M_DM = 2.e11  # dark halo mass(M_solar) #[M_solar]
-M_gal = M_disk + M_bulge + M_DM #[M_solar]
+M_gal = M_disk + M_bulge + M_halo + M_DM #[M_solar]
 L2Lstar = np.power((M_gal/2.e12*M_solar), 2)
 R_opt = 2.*h_rho_disk # Optical radius #[pc]
 V_opt = 200. # V(R_opt)  #[km/s]
@@ -157,8 +160,8 @@ phi_halo = tools.init_pos(N_halo, 0., 2.*pi, 'uni')  #galaxy[2]  #[pc]
 
 # VEL:Bulge (Gaussian dist. with given mean and dispersion)
 Vr_bulge = np.zeros(N_bulge) #[km/s]
-Vtheta_bulge = np.zeros(N_bulge) #[km/s]
-Vphi_bulge = np.zeros(N_bulge) #[km/s]
+Vtheta_bulge = np.ones(N_bulge)*mean_bulge #[km/s]
+Vphi_bulge = np.ones(N_bulge)*mean_bulge/5. #[km/s]
 
 # VEL:Disk (Rotation curve analytic relation)
 Vrho_disk = np.zeros(N_disk) #[km/s]
@@ -167,8 +170,8 @@ Vz_disk = np.zeros(N_disk)  #[km/s]
 
 # VEL:Halo (Gaussian dist. with given mean and dispersion)
 Vr_halo = np.zeros(N_halo) #[km/s]
-Vtheta_halo = np.zeros(N_halo) #[km/s]
-Vphi_halo = np.zeros(N_halo) #[km/s]
+Vtheta_halo = np.ones(N_halo)*mean_halo #[km/s]
+Vphi_halo = np.ones(N_halo)*mean_halo/5. #[km/s]
 
 # L(I-band):Bulge (Gaussian dist. with given total L)
 lgI_I0 = np.power(r_bulge, 0.25)
@@ -231,15 +234,10 @@ np.save(filename, galaxy)
 count = 1
 i = 0
 captured_total=0
-#col_tot = 0.
-#count_tot = 0.
-#colonized_fraction = abs(np.sum(galaxy[5]))/len(galaxy[5])
 colonized_fraction = (captured_total*1.0)/(N_gal)
 dist = VC * (dt_c-dt_const)*km2pc #[pc]
 while t < t_f:
-#    print t
     t = i*dt_c #[sec]
-    # Colonize the galaxy!
 #    with timer("===========COLONIZING!==========="):
 
     if colonization and colonized_fraction < col_f:# and i%(int(dt_r/dt_c)) != 0:
@@ -251,20 +249,13 @@ while t < t_f:
             captured_total += captured
 
     if rotation and i%(int(dt_r/dt_c)) == 0:
-        # Evaluate bulge velocities (Spherical)
-        galaxy[3,:N_bulge] = tools.v_rotational_unisphere(galaxy[0,:N_bulge], R_bulge, M_bulge) #[km/s]
-        sign = np.round(np.random.uniform(0,1,N_bulge))*2.-1
-        galaxy[7,:N_bulge] = sign*np.random.normal(0.0, sigma_bulge, N_bulge) #[km/s]
         # Rotate the bulge
         galaxy[1,:N_bulge] += galaxy[3,:N_bulge]*km2pc*dt_r/galaxy[0,:N_bulge] # v_theta = r*dtheta/dt  #[pc]
-        galaxy[2,:N_bulge] += galaxy[7,:N_bulge]*km2pc*dt_r/galaxy[0,:N_bulge]*np.sin(galaxy[2,:N_bulge]) # v_phi = r*sin(theta)*dphi/dt #[pc]
+#        galaxy[2,:N_bulge] += galaxy[7,:N_bulge]*km2pc*dt_r/galaxy[0,:N_bulge] # v_phi = r*sin(theta)*dphi/dt #[pc]
         # Oscillate bulge particles (around original r positions only)
-        galaxy[0,:N_bulge] = tools.r_bulge_oscillation(galaxy, t, mean_bulge, N_bulge, R_bulge)   
-        
+
         # Evaluate disk velocities (Cylindrical)
         galaxy[3,N_bulge:N_disk+N_bulge] = tools.v_rotational_disk(galaxy[0,N_bulge:N_disk+N_bulge]*pc2km, V_opt, R_opt*pc2km, L2Lstar) #[km/s]
-#        sign = np.round(np.random.uniform(0,1,N_disk))*2.-1
-#        galaxy[3,N_bulge:N_bulge+N_disk] += sign*np.random.normal(0.0, sigma_rho_disk, N_disk) #[km/s]
         # Rotate the disk
         galaxy[1,N_bulge:N_disk+N_bulge] += galaxy[3,N_bulge:N_disk+N_bulge]*km2pc*dt_r/galaxy[0,N_bulge:N_disk+N_bulge] # v_phi = rho*dphi/dt #[pc]
         if oscillation_r or oscillation_z:
@@ -272,28 +263,19 @@ while t < t_f:
             # Oscillate disk particles (around original rho and z positions only)
                 galaxy[0,N_bulge:N_disk+N_bulge] = rho_disk + tools.r_oscillation(galaxy, t, mean_rho_disk, N_bulge, N_disk, amp=100)
             if oscillation_z:
-                galaxy[2,N_bulge:N_disk+N_bulge] = tools.z_oscillation(galaxy, t, mean_z_disk, N_bulge, N_disk, amp=z_disk)    
+                galaxy[2,N_bulge:N_disk+N_bulge] = z_disk + tools.z_oscillation(galaxy, t, mean_z_disk, N_bulge, N_disk, amp=10)    
+#                galaxy[2,N_bulge:N_disk+N_bulge] = tools.z_oscillation(galaxy, t, mean_z_disk, N_bulge, N_disk, amp=z_disk)    
         else:
             galaxy[0,N_bulge:N_disk+N_bulge] = rho_disk
             galaxy[2,N_bulge:N_disk+N_bulge] = z_disk    
 
-        # Evaluate halo velocities (Spherical)
-
-#        galaxy[7,N_bulge+N_disk:] = sign*np.random.normal(0.0, sigma_halo, N_halo) #[km/s]
         # Rotate the halo
-        if oscillation_theta:
-            sign = np.round(np.random.uniform(0,1,N_halo))*2.-1
-            galaxy[3,-N_halo:] = sign*tools.v_rotational_unisphere(galaxy[0,-N_halo:], R_halo, M_halo) #[km/s]
-            galaxy[1,-N_halo:] += galaxy[3,-N_halo:]*km2pc*dt_r/galaxy[0,-N_halo:] # v_theta = r*dtheta/dt  #[pc]
-        if oscillation_phi:
-            sign = np.round(np.random.uniform(0,1,N_halo))*2.-1
-            galaxy[7,-N_halo:] = sign*tools.v_rotational_unisphere(galaxy[0,-N_halo:], R_halo, M_halo) #[km/s]
-            galaxy[2,-N_halo:] += galaxy[7,-N_halo:]*km2pc*dt_r/galaxy[0,-N_halo:]*np.sin(galaxy[2,-N_halo:]) # v_phi = r*sin(theta)*dphi/dt #[pc]
-        if oscillation_halo_r:
-        # Oscillate halo particles (around original r positions only)
-            galaxy[0,-N_halo:] = tools.r_halo_oscillation(galaxy, t, mean_halo, N_bulge, N_disk, N_halo, R_halo)
+        galaxy[1,-N_halo:] += galaxy[3,-N_halo:]*km2pc*dt_r/galaxy[0,-N_halo:] # v_theta = r*dtheta/dt  #[pc]
+#        galaxy[2,-N_halo:] += galaxy[7,-N_halo:]*km2pc*dt_r/galaxy[0,-N_halo:] # v_phi = r*sin(theta)*dphi/dt #[pc]
+        # Oscillate bulge particles (around original r positions only)
 
 #        colonized_fraction = abs(np.sum(galaxy[5]))/len(galaxy[5])
+
     colonized_fraction =  captured_total*1.0/(N_gal)
     i += 1
     col_parts = len(np.where(galaxy[5]!=0)[0])
@@ -302,7 +284,7 @@ while t < t_f:
 #    if abs(colonized_fraction-col_log10)<=0.01 or abs(colonized_fraction-col_log50)<=0.02 or abs(colonized_fraction-col_log75)<=0.02:
 #    if i%(int(dt_log/dt_c))==0:
     if probe == 'inf':
-        if abs(colonized_fraction*100.-10)<=0.005 or abs(colonized_fraction*100.-50)<=0.005 or (74-colonized_fraction*100)<=0.005 and (74-colonized_fraction*100)>0:
+        if abs(colonized_fraction*100.-10)<=5 or abs(colonized_fraction*100.-5)<=2 or (74-colonized_fraction*100)<=0.5 and (74-colonized_fraction*100)>0:
             print "%.2f colonized"%(colonized_fraction*100.)
             print "Writing to file..."
             filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d_%.2d"%(probe, loc, int(t*sec2Myr*1000), int(colonized_fraction*100))
@@ -314,7 +296,7 @@ while t < t_f:
             filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d_%.2d"%(probe, loc, int(t*sec2Myr*1000), int(colonized_fraction*100))
             np.save(filename, galaxy)
     elif probe == 'sinf':
-        if abs(colonized_fraction*100.-10)<=0.005 or abs(colonized_fraction*100.-col_f*100.)<=0.005 and  i%(int(dt_log/dt_c))==0:
+        if abs(colonized_fraction*100.-10)<=5 or abs(colonized_fraction*100.-col_f*100.)<=10 and  i%(int(dt_log/dt_c))==0:
             print "%.2f colonized"%(colonized_fraction*100.)
             print "Writing to file..."
             filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d_%.2d"%(probe, loc, int(t*sec2Myr*1000), int(colonized_fraction*100))
@@ -325,6 +307,7 @@ while t < t_f:
             print "Writing to file..."
             filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d_%.2d"%(probe, loc, int(t*sec2Myr*1000), int(colonized_fraction*100))
             np.save(filename, galaxy)
+    else:
     # if i==1e3 or i==5e3 or i==1e4 or i==5e41;5A or i==1e5:
     #     print "%.2f colonized"%(colonized_fraction*100.)
     #     print "Writing to file..."
@@ -332,10 +315,11 @@ while t < t_f:
     #     np.save(filename, galaxy)
 #   galaxy_backup[:]=galaxy
     # elif i%((250.*Myr2sec/dt_c)) == 0:
-    #     print "%.2f colonized"%(colonized_fraction)
-    #     print "Writing to file..."
-    #     filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d"%(probe, loc, int(t*sec2Myr*1000))
-    #     np.save(filename, galaxy)
+        if i%int(dt_log/dt_c)==0:
+            print "%.2f colonized"%(colonized_fraction)
+            print "Writing to file..."
+            filename = "/home/saas9842/PhD/tmp/%s%d/galaxy_%.2d_%.2d"%(probe, loc, int(t*sec2Myr*1000), int(colonized_fraction*100))
+            np.save(filename, galaxy)
 
 #print "%.2f colonized"%(colonized_fraction*100)
 #print "Writing to file..."
