@@ -1,1 +1,4 @@
 *.pyc
+*.lst
+*.txt
+*.sh
