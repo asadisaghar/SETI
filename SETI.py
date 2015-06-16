@@ -62,7 +62,7 @@ oscillation_z = True
 oscillation_sphere_r = False
 
 SingleProbe = False
-probe = "midinf"
+probe = "slowgalmid"
 if probe == 'inf' or probe == 'sing':
     col_f = 0.75
 elif probe == 'sinf' or probe == 'ssing':
@@ -104,7 +104,7 @@ alpha_bulge = R_bulge/3.  # bulge scale length #[pc]
 n_s_bulge = 5  # Bulge Sersic index(in range: 1.5-10)
 #M_bulge = 9.3e6  # bulge mass #FIXME
 M_bulge = 2.e10  # bulge mass #[M_solar]
-mean_bulge = 200. # (My arbitrary value!!) #FIXME value  #[km/s]
+mean_bulge = 100. # (My arbitrary value!!) #FIXME value  #[km/s]
 sigma_bulge = 10. # Velocity dispercion  #[km/s]
 rho_bulge = M_bulge/(4./3.*pi*R_bulge**3)
 
@@ -115,7 +115,7 @@ R_halo = 30.e3
 I_0_halo = 20.e7  # Halo central intensity
 alpha_halo = R_halo/3.  # bulge scale length
 n_s_halo = 5  # Bulge Sersic index(in range: 1.5-10)
-mean_halo = 500. # (My arbitrary value!!)
+mean_halo = 200. # (My arbitrary value!!)
 sigma_halo = 10. # Velocity dispercion
 M_halo = 2.e9  # Halo mass
 M_halo += M_bulge + M_disk
