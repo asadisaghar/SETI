@@ -377,7 +377,8 @@ def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
 
 def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt):
     tmp = filename.split('.npy')
-    t = tmp[0].split('galaxy_')[1]
+    t = int(tmp[0].split('_')[1])
+    colonized_fraction = int(tmp[0].split('_')[2])
     galaxy = np.load('%s'%(filename))
     
     x_gal = np.zeros_like(galaxy[0])
@@ -420,10 +421,10 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt):
     y_col = y_gal[inds]
     z_col = z_gal[inds]
 
-    colonized = np.where(cs_gal!=0)[0]
-    colonized_fraction = len(colonized)/len(cs_gal)*1.
+#    colonized = np.where(cs_gal!=0)[0]
+#    colonized_fraction = len(colonized)/len(cs_gal)*1.
 
-    fig = plt.figure(figsize=(20, 10))
+    fig = plt.figure(figsize=(15, 8))
     # Face-on
     axfo = plt.subplot(121)
     axfo.set_aspect('equal')
@@ -446,7 +447,9 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt):
     plt.ylabel(r'Y (kpc)')
     plt.xlim([-3e1, 3e1])
     plt.ylim([-3e1, 3e1])
-    plt.text(-2.5e1, 2.5e1, "%s"%(txt), fontsize=40)
+    plt.text(-2.7e1, 2.4e1, "%s"%(txt), fontsize=40)
+    timeMyr = round(t/1000.,0)
+#    axfo.set_title("t = %d Myr"%(timeMyr), fontsize=30)
 #    print ("time = %s Myr"%(t/100.))
 #    plt.title("time = %s Myr"%(t))
 #    cb = plt.colorbar(pad=0.2,
@@ -477,8 +480,11 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt):
 #    cb = plt.colorbar(pad=0.2,
 #                      orientation='horizontal')
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-#    plt.title("Colonized fraction = %.2f"%(colonized_fraction))
-    print ("Colonized fraction = %.2f"%(colonized_fraction))
+    colPercent = round(colonized_fraction,0)
+#    axeo.set_title("%d"r'%'" colonized"%(colPercent), fontsize=30)
+    plt.suptitle("t = %d Myr"%(timeMyr), fontsize=30)
+    print ("Colonized : %s"%(colPercent))
+    print ("time : %s"%(timeMyr))
     plt.savefig("%s.svg"%(filename))
     plt.savefig("%s.png"%(filename))
 #    plt.show()
