@@ -375,7 +375,7 @@ def singleplot(name, N_gal, Li, r_colonizer, VC, dt_const):
 #    plt.show()
 
 
-def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt, ttxt):
+def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt="", ttxt=""):
     tmp = filename.split('.npy')
     t = int(tmp[0].split('_')[1])
     colonized_fraction = int(tmp[0].split('_')[2])
@@ -482,8 +482,8 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt, ttxt):
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
     colPercent = round(colonized_fraction,0)
 #    axeo.set_title("%d"r'%'" colonized"%(colPercent), fontsize=30)
-#    plt.text(-1.5e1, 2.4e1, "t = %d Myr"%(timeMyr), fontsize=30)
-    plt.text(-1.0e1, 2.4e1, "%s"%(ttxt), fontsize=30)
+    plt.text(-1.5e1, 2.4e1, "t = %d Myr"%(timeMyr), fontsize=30)
+#    plt.text(-1.0e1, 2.4e1, "%s"%(ttxt), fontsize=30)
     print ("Colonized : %s"%(colPercent))
     print ("time : %s"%(timeMyr))
     plt.savefig("%s.svg"%(filename))

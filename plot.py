@@ -10,15 +10,42 @@ import tools
 # e=in_path+"/%s/galaxy_503000_53.npy"%(proj)
 # f=in_path+"/%s/galaxy_1030200_53.npy"%(proj)
 
-in_path = "/home/saas9842/PhD/tmp"
-proj = "slowgalmid2"
-a=in_path+"/%s/galaxy_4600_00.npy"%(proj)
-b=in_path+"/%s/galaxy_19000_13.npy"%(proj)
-c=in_path+"/%s/galaxy_23800_50.npy"%(proj)
-d=in_path+"/%s/galaxy_273400_50.npy"%(proj)
-e=in_path+"/%s/galaxy_523000_50.npy"%(proj)
-f=in_path+"/%s/galaxy_1022199_50.npy"%(proj)
+#for paper
+# in_path = "/home/saas9842/PhD/tmp"
+# proj = "slowgalmid2"
+# a=in_path+"/%s/galaxy_4600_00.npy"%(proj)
+# b=in_path+"/%s/galaxy_19000_13.npy"%(proj)
+# c=in_path+"/%s/galaxy_23800_50.npy"%(proj)
+# d=in_path+"/%s/galaxy_273400_50.npy"%(proj)
+# e=in_path+"/%s/galaxy_523000_50.npy"%(proj)
+# f=in_path+"/%s/galaxy_1022199_50.npy"%(proj)
+# N_disk = int(2.e4)
+# N_bulge = int(0.33*N_disk)
+# N_halo = int(0.01*N_disk)
+# tools.plot_part_galaxy(a, N_bulge, N_disk, N_halo, mode='k', txt="a)", ttxt="5 Myr")
+# tools.plot_part_galaxy(b, N_bulge, N_disk, N_halo, mode='k', txt="b)", ttxt="20 Myr")
+# tools.plot_part_galaxy(c, N_bulge, N_disk, N_halo, mode='k', txt="c)", ttxt="25 Myr")
+# tools.plot_part_galaxy(d, N_bulge, N_disk, N_halo, mode='k', txt="d)", ttxt="275 Myr")
+# tools.plot_part_galaxy(e, N_bulge, N_disk, N_halo, mode='k', txt="e)", ttxt="525 Myr")
+# tools.plot_part_galaxy(f, N_bulge, N_disk, N_halo, mode='k', txt="f)", ttxt="1025 Myr")
+# tools.plot_part_galaxy(g, N_bulge, N_disk, N_halo, mode='k', txt="g)")
 
+#for movie
+in_path = "/home/saas9842/PhD/tmp"
+proj = "animatedgal2"
+path = "%s/%s"%(in_path, proj)
+N_disk = int(2.e4)
+N_bulge = int(0.33*N_disk)
+N_halo = int(0.01*N_disk)
+flist = open("%s/frames.lst"%(path), "r")
+for columns in (raw.strip().split() for raw in flist ):
+    print columns[-1]
+    frm = "%s/%s"%(path, columns[-1])
+    tools.plot_part_galaxy(frm, N_bulge, N_disk, N_halo, mode='k', txt="V=0.001c")
+
+
+
+#################
 # in_path = "/home/saas9842/PhD/tmp"
 # proj = "slowgalVslow2"
 # a=in_path+"/%s/galaxy_99800_00.npy"%(proj)
@@ -67,14 +94,3 @@ f=in_path+"/%s/galaxy_1022199_50.npy"%(proj)
 # e=in_path+"/%s/galaxy_523000_52.npy"%(proj)
 # f=in_path+"/%s/galaxy_1022199_52.npy"%(proj)
 
-N_disk = int(2.e4)
-N_bulge = int(0.33*N_disk)
-N_halo = int(0.01*N_disk)
-
-tools.plot_part_galaxy(a, N_bulge, N_disk, N_halo, mode='k', txt="a)", ttxt="5 Myr")
-tools.plot_part_galaxy(b, N_bulge, N_disk, N_halo, mode='k', txt="b)", ttxt="20 Myr")
-tools.plot_part_galaxy(c, N_bulge, N_disk, N_halo, mode='k', txt="c)", ttxt="25 Myr")
-tools.plot_part_galaxy(d, N_bulge, N_disk, N_halo, mode='k', txt="d)", ttxt="275 Myr")
-tools.plot_part_galaxy(e, N_bulge, N_disk, N_halo, mode='k', txt="e)", ttxt="525 Myr")
-tools.plot_part_galaxy(f, N_bulge, N_disk, N_halo, mode='k', txt="f)", ttxt="1025 Myr")
-tools.plot_part_galaxy(g, N_bulge, N_disk, N_halo, mode='k', txt="g)")

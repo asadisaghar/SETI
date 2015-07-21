@@ -2,7 +2,7 @@
 *.lst
 *.txt
 *.txt~
-*.sh
+#*.sh
 *.py~
 *.npy
 stats

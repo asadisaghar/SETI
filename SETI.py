@@ -62,7 +62,7 @@ oscillation_z = True
 oscillation_sphere_r = False
 
 SingleProbe = False
-probe = "slowgalmid"
+probe = "animatedgal"
 if probe == 'inf' or probe == 'sing':
     col_f = 0.75
 elif probe == 'sinf' or probe == 'ssing':
