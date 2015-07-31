@@ -3,7 +3,7 @@ import os
 #os.chdir('/home/saas9842/mn/PhD/numerical_project')
 import tools
 #os.chdir(here)
-probe = "fastsing"
+probe = "animatedgal"
 loc = 2
 fileformat = "png"
 

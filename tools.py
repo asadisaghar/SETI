@@ -46,7 +46,6 @@ Myr2sec = Myr2yr*yr2sec
 sec2Myr = 1./Myr2sec
 
 cSpeed = 3.e5 #[km/s]
-RS = 1
 random.seed(RS)
 
 import datetime
@@ -379,6 +378,8 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt="", ttxt=""):
     tmp = filename.split('.npy')
     t = int(tmp[0].split('_')[1])
     colonized_fraction = int(tmp[0].split('_')[2])
+    colPercent = int(colonized_fraction)
+    timeMyr = round(t/1000.,0)
     galaxy = np.load('%s'%(filename))
     
     x_gal = np.zeros_like(galaxy[0])
@@ -447,8 +448,9 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt="", ttxt=""):
     plt.ylabel(r'Y (kpc)')
     plt.xlim([-3e1, 3e1])
     plt.ylim([-3e1, 3e1])
-    plt.text(-2.7e1, 2.4e1, "%s"%(txt), fontsize=30)
-    timeMyr = round(t/1000.,0)
+#    fig.figtext(-2.7e1, 2.4e1, "t = %4.f Myr"%(timeMyr), fontsize=30)
+#    plt.text(-2.7e1, 2.4e1, "%s"%(txt), fontsize=30)
+
 #    axfo.set_title("t = %d Myr"%(timeMyr), fontsize=30)
 #    print ("time = %s Myr"%(t/100.))
 #    plt.title("time = %s Myr"%(t))
@@ -480,13 +482,24 @@ def plot_part_galaxy(filename, N_bulge, N_disk, N_halo, mode, txt="", ttxt=""):
 #    cb = plt.colorbar(pad=0.2,
 #                      orientation='horizontal')
 #    cb.set_label(r'$\mathrm{log(L/L_\odot)}$')
-    colPercent = round(colonized_fraction,0)
+
 #    axeo.set_title("%d"r'%'" colonized"%(colPercent), fontsize=30)
-    plt.text(-1.5e1, 2.4e1, "t = %d Myr"%(timeMyr), fontsize=30)
+
+    plt.text(-9.7e1, 2.4e1, "%4.f"%(timeMyr), fontsize=30, horizontalalignment="left", verticalalignment="center")
+    plt.text(-9.0e1, 2.4e1, "   Myr", fontsize=30, horizontalalignment="left", verticalalignment="center")
+
+    plt.text(-2.7e1, 2.4e1, "%3.f"%(colPercent), fontsize=30, horizontalalignment="left", verticalalignment="center")
+    plt.text(-1.7e1, 2.4e1, "% colonized", fontsize=30, horizontalalignment="left", verticalalignment="center")
+
+#    plt.figtext(0.15, 0.75, "%4.d Myr"%(timeMyr), fontsize=30)
+#    plt.figtext(0.6, 0.75, "%3.d%% colonized"%(colPercent), fontsize=30)
+#    axfo.set_title("%4.d Myr"%(timeMyr), fontsize=30)
+#    axeo.set_title("%3.d%% colonized"%(colPercent), fontsize=30)
 #    plt.text(-1.0e1, 2.4e1, "%s"%(ttxt), fontsize=30)
+    plt.text(-8.e1, 3.6e1, "Probe Velocity: 0.01% of light speed", fontsize=30)
     print ("Colonized : %s"%(colPercent))
     print ("time : %s"%(timeMyr))
-    plt.savefig("%s.svg"%(filename))
+#    plt.savefig("%s.svg"%(filename))
     plt.savefig("%s.png"%(filename))
 #    plt.show()
 

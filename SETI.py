@@ -36,19 +36,20 @@ Myr2sec = Myr2yr*yr2sec
 sec2Myr = 1./Myr2sec
 
 cSpeed = 3.e5 #[km/s]
-RS = 2
+RS = 200
 random.seed(RS)
 # ===================== #
 #        HANDLES        #
 # ===================== #
 N_disk = int(2.e4)  # number of particles in disk (same order as N_gal)
-dt_log = 5.e0*Myr2sec #[s] time step to dump the array into a file
+dt_log = 1.e0*Myr2sec #[s] time step to dump the array into a file
+dt_log_stall = 20.*dt_log
 dt_r = 2.e-1*Myr2sec #[s] time step to rotate the galaxy
 dt_c = 2.e-1*Myr2sec #[s] time step to update the colonization
 dt_const = 1e-12*Myr2sec #[s]
-VC = 1e-3*cSpeed #[km/s]
+VC = 1e-4*cSpeed #[km/s]
 t = 0
-t_f = 22.e2*Myr2sec  # time to stop #[s]
+t_f = 15.e2*Myr2sec  # time to stop #[s]
 col_log10 = 0.1
 col_log50 = 0.5
 col_log75 = 0.75
@@ -68,7 +69,7 @@ if probe == 'inf' or probe == 'sing':
 elif probe == 'sinf' or probe == 'ssing':
     col_f = 0.5
 else:
-    col_f = 0.50
+    col_f = 0.75
 InfiniteProbe = not(SingleProbe)
 coveringFraction = 1.0
 RandomStart = False
@@ -234,7 +235,7 @@ np.save(filename, galaxy)
 count = 1
 i = 0
 captured_total=0
-colonized_fraction = (captured_total*1.0)/(N_gal)
+colonized_fraction = (captured_total*1.0)/(N_gal) 
 dist = VC * (dt_c-dt_const)*km2pc #[pc]
 while t < t_f:
     t = i*dt_c #[sec]
@@ -277,6 +278,8 @@ while t < t_f:
 #        colonized_fraction = abs(np.sum(galaxy[5]))/len(galaxy[5])
 
     colonized_fraction =  captured_total*1.0/(N_gal)
+    if colonized_fraction > col_f:
+        dt_log = dt_log_stall
     i += 1
     col_parts = len(np.where(galaxy[5]!=0)[0])
     print "%.3f Myr \t %.5f %%colonized"%(t*sec2Myr, colonized_fraction*100.)
