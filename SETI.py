@@ -41,12 +41,21 @@ random.seed(RS)
 # ===================== #
 #        HANDLES        #
 # ===================== #
-N_disk = int(2.e4)  # number of particles in disk (same order as N_gal)
-dt_log = 1.e0*Myr2sec #[s] time step to dump the array into a file
-dt_log_stall = 20.*dt_log
-dt_r = 2.e-1*Myr2sec #[s] time step to rotate the galaxy
-dt_c = 2.e-1*Myr2sec #[s] time step to update the colonization
-dt_const = 1e-12*Myr2sec #[s]
+N_disk = int(2.e4)        #number of particles in disk (same order as N_gal)
+
+dt_log =  1.              #time step to dump the array into a file before the maximum colonization is achieved in [Myear]
+dt_log *= si.Myr
+dt_log_stall = 20.*dt_log #time step to dump the array into a file after the maximum colonization is achieved in [Myear]
+
+dt_rotation = 0.2
+dt_rotation *= si.Myr     #time step to rotate the galaxy
+
+dt_colonization = 0.2
+dt_colonization *= si.Myr #time step to update the colonization
+
+dt_construction = 1e-12
+dt_construction *= si.Myr #construction time delay in [Myr]
+
 VC = 1e-4*cSpeed #[km/s]
 t = 0
 t_f = 15.e2*Myr2sec  # time to stop #[s]
