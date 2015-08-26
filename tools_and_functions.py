@@ -194,7 +194,8 @@ def initialize_colonization(galaxy):
 
 
 def rotate_disk(galaxy):
-    r = galaxy["pos1",config.N_bulge:config.N_bulge+config.N_disk]*u.pc.to(u.km)
+    r = galaxy["pos1",config.N_bulge:config.N_bulge+config.N_disk]*u.pc
+    r = r.to(u.km)
     V2_opt = np.power(config.V_optical_galaxy, 2)
     x = r/config.R_optical_galaxy
     a = 1.5*np.power(config.L2Lstar_galaxy, 1.5)
@@ -221,20 +222,31 @@ def oscillate_z_disk(galaxy, simulation_time, amp):
     galaxy["pos3",config.N_bulge:config.N_bulge+config.N_disk] = amp*np.cos(omega*t+phase)
 
 
-def update_galaxy(galaxy, simulation_time, r_osc_disk_amp, z_osc_disk_amp):
+def update_galaxy(galaxy, simulation_time):
+    #Bulge
     if config.bulge_rotation:
-        galaxy["pos2",0:config.N_bulge] += galaxy["vel1",0:config.N_bulge]*u.km.to(u.pc)*config.dt_rotation/galaxy["pos1",0:config.N_bulge] # v_theta = r*dtheta/dt                                   
+        # v_theta = r*dtheta/dt
+        galaxy["pos2"][:config.N_bulge] += galaxy["vel1"][:config.N_bulge]*u.km*config.dt_rotation/galaxy["pos1"][:config.N_bulge]
+        galaxy["pos2"][0:config.N_bulge] = galaxy["pos2"][0:config.N_bulge].to(u.pc)
+    #Disk
+    if config.disk_rotation:
         # Evaluate disk velocities (Cylindrical)
-        galaxy["vel1",config.N_bulge:config.N_disk+config.N_bulge] = rotate_disk(galaxy)
+        galaxy["vel1"][config.N_bulge:config.N_disk+config.N_bulge] = rotate_disk(galaxy)
         # Rotate the disk
-        galaxy["pos2",config.N_bulge:config.N_disk+config.N_bulge] += galaxy["vel1",config.N_bulge:config.N_disk+config.N_bulge]*u.km.to(u.pc)*config.dt_rotation/galaxy["pos1",config.N_bulge:config.N_disk+config.N_bulge] # v_phi = rho*dphi/dt
-        if config.disk_oscillation_r or config.disk_oscillation_z:
-            if config.disk_oscillation_r:
+        # v_phi = rho*dphi/dt
+        galaxy["pos2"][config.N_bulge:config.N_disk+config.N_bulge] += galaxy["vel1"][config.N_bulge:config.N_disk+config.N_bulge]*u.km*config.dt_rotation/galaxy["pos1"][config.N_bulge:config.N_disk+config.N_bulge]
+        galaxy["pos2"][config.N_bulge:config.N_disk+config.N_bulge] = galaxy["pos2"][config.N_bulge:config.N_disk+config.N_bulge].to(u.pc)
+    if config.disk_oscillation_r or config.disk_oscillation_z:
+        if config.disk_oscillation_r:
             # Oscillate disk particles (around original rho and z positions only)
-                galaxy["pos1",config.N_bulge:config.N_disk+config.N_bulge] = pos_rho_disk + oscillate_r_disk(galaxy, t, mean_rho_disk, N_bulge, N_disk, amp=100)
-            if oscillation_z:
-                galaxy["pos3",config.N_bulge:config.N_disk+config.N_bulge] = pos_z_disk + oscillate_z_disk(galaxy, t, mean_z_disk, N_bulge, N_disk, amp=10)
-
+            galaxy["pos1"][config.N_bulge:config.N_disk+config.N_bulge] = pos_rho_disk + oscillate_r_disk(galaxy, simulation_time, amp=100)
+        if config.disk_oscillation_z:
+            galaxy["pos3"][config.N_bulge:config.N_disk+config.N_bulge] = pos_z_disk + oscillate_z_disk(galaxy, simulation_time, amp=10)
+    #Stellar halo
+    if config.stellar_halo_rotation:
+        # v_theta = r*dtheta/dt
+        galaxy["pos2"][-config.N_stellar_halo] += galaxy["vel1"][-config.N_stellar_halo:]*u.km*config.dt_rotation/galaxy["pos1"][-config.N_stellar_halo:]
+        galaxy["pos2"][-config.N_stellar_halo] = galaxy["pos2"][-config.N_stellar_halo].to(u.pc)
 
 def colonize_galaxy(galaxy):
     pass

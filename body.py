@@ -28,8 +28,8 @@ while simulation_time < config.t_final:
     # colonized_fraction = tools_and_functions.measure_colonized_fraction(galaxy, simulation_time)
     # tools_and_functions.record_galaxy(galaxy, simulation_time)
 
-    if config.galaxy_rotation and simulation_time%config.dt_rotation==0:
-        tools_and_functions.update_galaxy(galaxy)
+    if config.galaxy_motion and simulation_time%config.dt_rotation==0:
+        tools_and_functions.update_galaxy(galaxy, simulation_time)
     if config.galaxy_colonization and simulation_time%config.dt_colonization==0:
         tools_and_functions.colonize_galaxy(galaxy)
         colonized_fraction = tools_and_functions.measure_colonized_fraction(galaxy)

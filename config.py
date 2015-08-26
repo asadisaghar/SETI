@@ -8,18 +8,24 @@ import astropy.constants as cst
 # ===================== #
 N_disk = int(2.e4)
 # time step to dump the galaxy array before the maximum colonization
-dt_log =  1.*u.Myr.to(u.second)
+dt_log =  1.*u.Myr
+dt_log = dt_log.to(u.second)
 #time step to dump the galaxy array after the maximum colonization
 dt_log_stall = 20.*dt_log
-dt_rotation = 0.2*u.Myr.to(u.second)
-dt_colonization = 0.2*u.Myr.to(u.second)
-dt_construction = 1e-12*u.Myr.to(u.second)
-v_probe = 1e-4*cst.c.to(u.km/u.second)
+dt_rotation = 0.2*u.Myr
+dt_rotation = dt_rotation.to(u.second)
+dt_colonization = 0.2*u.Myr
+dt_colonization = dt_colonization.to(u.second)
+dt_construction = 1e-12*u.Myr
+dt_construction = dt_construction.to(u.second)
+v_probe = 1e-4*cst.c
+v_probe = v_probe.to(u.km/u.second)
 t_initial = 0.*u.second
-t_final = 15.e2*u.Myr.to(u.second)
+t_final = 15.e2*u.Myr
+t_final =t_final.to(u.second)
 
 ## What does the galaxy do
-galaxy_rotation = True
+galaxy_motion = True
 bulge_rotation = True
 disk_rotation = True
 disk_oscillation_r = True
