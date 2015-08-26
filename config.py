@@ -19,15 +19,18 @@ t_initial = 0.*u.second
 t_final = 15.e2*u.Myr.to(u.second)
 
 ## What does the galaxy do
+galaxy_rotation = True
+bulge_rotation = True
 disk_rotation = True
 disk_oscillation_r = True
 disk_oscillation_z = True
+stellar_halo_rotation = True
 
 ## What does the civilization do
 colonization = True
 single_probe = False
 infinite_probe = not single_probe
-maximum_colonization_fraction = 0.75
+max_colonization_fraction = 0.75
 covering_fraction_colonizer = 1.0
 random_start = True
 if not random_start:
