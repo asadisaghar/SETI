@@ -40,9 +40,10 @@ max_colonization_fraction = 0.75
 covering_fraction_colonizer = 1.0
 random_start = True
 if not random_start:
-# Change below only if random_start = False
-    start_r_colonizer = 8.e3*u.parsec  # radial distance from the galactic center
+    start_r_colonizer = 8.e3*u.parsec
     start_r_error_colonizer = 10.*u.parsec
+effective_distance = v_probe*(dt_colonization - dt_construction)
+effective_distance = effective_distance.to(u.pc)
 
 # ===================== #
 #  Galactic parameters  #

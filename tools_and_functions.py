@@ -149,6 +149,11 @@ def initialize_random_colonizer(N_gal, galaxy):
     CS[colonizer] = 1
     galaxy["col_state"][colonizer] = True
 
+def cartesian_transformation(galaxy):
+    spherical2cartesian(galaxy, 0, config.N_bulge)
+    cylindrical2cartesian(galaxy, config.N_bulge, config.N_bulge+config.N_disk)
+    spherical2cartesian(galaxy, config.N_stellar_halo, -1)
+
 def initialize_galaxy(galaxy):
     initialize_bulge()
     initialize_disk()
@@ -181,6 +186,7 @@ def initialize_galaxy(galaxy):
     galaxy["vel1"] = vel1_gal
     galaxy["vel2"] = vel2_gal
     galaxy["vel3"] = vel3_gal
+    cartesian_transformation(galaxy)
 #    galaxy["I"] = I_gal #FIXME
 
 
@@ -192,6 +198,22 @@ def initialize_colonization(galaxy):
                                    config.start_r_colonizer, 
                                    config.start_r_error_colonizer)
 
+def cylindrical2cartesian(galaxy, start_index, end_index):
+    pos_rho = galaxy["pos1"][start_index:end_index]
+    pos_phi = galaxy["pos2"][start_index:end_index]
+    pos_z = galaxy["pos3"][start_index:end_index]
+    galaxy["x"][start_index:end_index] = pos_rho*np.cos(pos_phi)
+    galaxy["y"][start_index:end_index] = pos_rho*np.sin(pos_phi)
+    galaxy["z"][start_index:end_index] = pos_z
+
+
+def spherical2cartesian(galaxy, start_index, end_index):
+    pos_r = galaxy["pos1"][start_index:end_index]
+    pos_theta = galaxy["pos2"][start_index:end_index]
+    pos_phi = galaxy["pos3"][start_index:end_index]
+    galaxy["x"][start_index:end_index] = pos_r*np.sin(pos_theta)*np.cos(pos_phi)
+    galaxy["y"][start_index:end_index] = pos_r*np.sin(pos_theta)*np.sin(pos_phi)
+    galaxy["z"][start_index:end_index] = pos_r*np.cos(pos_theta)
 
 def rotate_disk(galaxy):
     r = galaxy["pos1",config.N_bulge:config.N_bulge+config.N_disk]*u.pc
@@ -249,7 +271,36 @@ def update_galaxy(galaxy, simulation_time):
         galaxy["pos2"][-config.N_stellar_halo] = galaxy["pos2"][-config.N_stellar_halo].to(u.pc)
 
 def colonize_galaxy(galaxy):
-    pass
+    cartesian_transformation(galaxy, steps)
+    # Spot the colonizers
+    colonizer_inds  = np.where(galaxy["col_stat"])[0]
+    captured = 0
+    for ind in colonizer_inds:
+        distance = config.effective_distance*(steps-galaxy["col_stat"][ind])
+        x_col = galaxy["x"][ind]
+        y_col = galaxy["y"][ind]
+        z_col = galaxy["z"][ind]
+        # Spot potential colonies (particles that have never been colonized)
+        pots = np.where(galaxy["col_stat"]==False)[0] #index
+        x_pots = galaxy["x"][pots]
+        y_pots = galaxy["y"][pots]
+        z_pots = galaxy["z"][pots]
+        d = np.sqrt((x_col-x_pots)**2+(y_col-y_pots)**2+(z_col-z_pots)**2) #distance            
+        if config.single_probe:                                                
+            d_min = min(d)
+            if d_min <= dist:
+                ind_new = pots[np.where(d==d_min)[0][0]]
+                galaxy["col_stat"][ind_new] = steps
+                galaxy["I"][ind_new] *= (1.-config.covering_fraction_colonizer)
+                captured += 1
+        elif config.infinite_probe:
+            cols = np.where(d<=dist)[0]
+            if len(cols)>0:
+                indcs = pots[cols]
+                galaxy["col_stat"][indcs] = steps
+                galaxy["I"][indcs] *= (1.- config.covering_fraction_colonizer)
+                captured += len(cols)
+    return captured
 
 def measure_colonized_fraction(galaxy):
     return len(np.where(galaxy["col_state"]==True)[0])*1./config.N_galaxy*1.
