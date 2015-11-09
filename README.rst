@@ -1,8 +1,8 @@
 .. -*- mode: rst -*-
 
 =======================================
- SETI
- =======================================
+SETI
+=======================================
 
 .. image:: http://img.shields.io/badge/arXiv-1508.02406-orange.svg?style=flat
         :target: http://arxiv.org/abs/1508.02406
@@ -13,7 +13,7 @@
 - vis.py is to visualize the array using different modes of plot_part_gal function
 
 =======================================
-SETI.py output file formats:
+ SETI.py output file formats:
 =======================================
 
 "strategy+starting point"_"kyr from the start"_"colonized percentage"
@@ -25,7 +25,7 @@ Kyr from the start: in static colonization cases, these are chosen to be
                     ~500Myr and ~1000Myr after the ~50% colonized fraction reached
 
 =======================================
-Modes of colonization:
+ Modes of colonization:
 =======================================
 
     Spherical wave (tools.col_inf2):
