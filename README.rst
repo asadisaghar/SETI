@@ -1,8 +1,11 @@
-.. image:: http://img.shields.io/badge/arXiv-1508.02406-orange.svg?style=flat
-        :target: http://arxiv.org/abs/1508.02406
+.. -*- mode: rst -*-
+
 =======================================
  SETI
  =======================================
+
+.. image:: http://img.shields.io/badge/arXiv-1508.02406-orange.svg?style=flat
+        :target: http://arxiv.org/abs/1508.02406
 
 - see https://github.com/koffol/SETI/issues/1 for best suggested parameter combination
 - tools.py and vis.py need to be in the same dir as SETI.py (the main body)
