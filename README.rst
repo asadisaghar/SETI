@@ -7,7 +7,7 @@ SETI
 .. image:: http://img.shields.io/badge/arXiv-1508.02406-orange.svg?style=flat
         :target: http://arxiv.org/abs/1508.02406
 
-HomePage of Project Hephaistos:
+Home page of Project Hephaistos:
 http://www.astro.uu.se/~ez/hephaistos/hephaistos.html
 
 - see https://github.com/koffol/SETI/issues/1 for best suggested parameter combination
